@@ -1,0 +1,20 @@
+{
+  "skill_name": "feature-workflow",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Brief (#142): on the invoice detail page of the billing web app, add a 'Download all attachments' link that saves every attachment of the invoice as one zip, for users who have no login to the document store. Branches exist: billing-web feature/zip-attachments-142, billing-api feature/zip-attachments-142. Write the scope spec only (no code) into billing-web/docs/features/download-all-attachments/spec_download-all-attachments_v1.md, then stop for my review.",
+      "expected_output": "A scope spec with the template sections (problem, scope/non-goals, verified facts with path:line citations, design, API contract, screen behaviour, ACs, decisions with recommendation first, per-step file lists upstream first, verification incl. what the local stack cannot show, Later, change log); no code written; no commits; stops for review.",
+      "files": [],
+      "assertions": [
+        "Spec has the twelve numbered template sections (Problem, Scope/non-goals, What exists today, Design, API contract, Screen behaviour, Acceptance criteria, Decisions, Implementation plan, Verification, Later, Change log)",
+        "Section 3 cites existing code with at least five path:line references",
+        "Decisions table lists each decision with a recommendation first and an alternative",
+        "Implementation plan has per-step Added/Changed file tables and puts the billing-api (upstream) step before the billing-web steps",
+        "Verification names what the local stack cannot show (e.g. seeded invoices have no stored attachment files) and where to check instead",
+        "No code was written: apart from the new spec, both repos' git status is unchanged",
+        "Final message stops for review instead of starting implementation"
+      ]
+    }
+  ]
+}
