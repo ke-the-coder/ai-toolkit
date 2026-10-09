@@ -1,0 +1,2691 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>盘古开天辟地 · 纪录片版</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;900&family=Lora:ital@1&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --gold:#E8B25A;
+    --soft:rgba(255,255,255,.76);
+    --dim:rgba(255,255,255,.52);
+    --line:rgba(255,255,255,.28);
+    --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    --serif:"Noto Serif SC","Songti SC","STSong","SimSun",serif;
+    --caps:"Montserrat","Helvetica Neue",Arial,sans-serif;
+    --quote:"Lora",Georgia,serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:#211a16;color:#F4F1EA}
+  body{font-family:var(--sans);-webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+  canvas#stage{position:fixed;inset:0;width:100%;height:100%;display:block}
+  body.idle{cursor:none}
+  button{font:inherit;color:inherit}
+  button:focus-visible,select:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+  /* 字幕 */
+  .scrim{position:fixed;left:0;right:0;bottom:0;height:28vh;pointer-events:none;z-index:3;opacity:0;transition:opacity 1.2s;
+    background:linear-gradient(to bottom,rgba(8,6,4,0),rgba(8,6,4,.45))}
+  body.playing .scrim{opacity:1}
+  #subs{position:fixed;left:50%;transform:translateX(-50%);bottom:max(22px,calc(env(safe-area-inset-bottom) + 14px),5vh);
+    width:min(90vw,1080px);text-align:center;pointer-events:none;z-index:4}
+  #subs p{margin:0;transition:opacity .45s ease;text-wrap:balance}
+  #subs.out p{opacity:0}
+  .zh{font-weight:500;font-size:clamp(18px,2.55vw,31px);line-height:1.5;letter-spacing:.05em;color:#fff;
+    text-shadow:0 1px 2px rgba(0,0,0,.8),0 0 16px rgba(0,0,0,.5)}
+  .en{font-family:"Segoe UI","Helvetica Neue",Arial,var(--sans);font-weight:400;font-size:clamp(13px,1.55vw,19px);line-height:1.45;color:rgba(255,255,255,.84);margin-top:.35em !important;
+    text-shadow:0 1px 2px rgba(0,0,0,.8),0 0 12px rgba(0,0,0,.5)}
+  .k span{transition:opacity .2s ease}
+  .k.on span{opacity:.5}
+  .k.on span.s{opacity:1}
+  body.sub-zh .en,body.sub-en .zh,body.sub-off #subs{display:none}
+
+  /* 章节卡 */
+  #card{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+    pointer-events:none;z-index:5;opacity:0;transition:opacity 1.1s ease;padding:0 6vw}
+  #card.show{opacity:1}
+  #card::before{content:"";position:absolute;inset:0;z-index:-1;
+    background:radial-gradient(ellipse 60% 55% at center,rgba(12,9,6,.55),rgba(12,9,6,0) 72%)}
+  #card > *{opacity:0;transform:translateY(10px);transition:opacity 1.1s ease,transform 1.4s cubic-bezier(.2,.7,.2,1)}
+  #card.show > *{opacity:1;transform:none}
+  #card.show .c-t{transition-delay:.25s} #card.show .c-en{transition-delay:.5s}
+  #card.show .c-q{transition-delay:1s} #card.show .c-qe{transition-delay:1.25s} #card.show .c-src{transition-delay:1.5s}
+  .c-no{font-family:var(--caps);font-weight:600;font-size:clamp(10px,1.05vw,13px);letter-spacing:.45em;color:var(--gold);margin:0 0 18px;padding-left:.45em}
+  .c-t{font-family:var(--serif);font-weight:900;font-size:clamp(44px,7.2vw,96px);letter-spacing:.16em;line-height:1.12;margin:0;padding-left:.16em;
+    color:#fff;text-shadow:0 2px 34px rgba(0,0,0,.45)}
+  .c-en{font-family:var(--caps);font-weight:500;font-size:clamp(11px,1.3vw,16px);letter-spacing:.5em;color:var(--soft);margin:18px 0 0;padding-left:.5em}
+  .c-line{width:0;height:1px;margin:26px auto 24px;opacity:1 !important;transform:none !important;
+    background:linear-gradient(90deg,transparent,var(--gold),transparent);transition:width 1.8s cubic-bezier(.2,.7,.2,1) .6s !important}
+  #card.show .c-line{width:min(420px,60vw)}
+  .c-q{font-family:var(--serif);font-weight:600;font-size:clamp(16px,1.9vw,24px);letter-spacing:.14em;color:#fff;margin:0}
+  .c-qe{font-family:var(--quote);font-style:italic;font-size:clamp(13px,1.35vw,17px);color:var(--soft);margin:10px 0 0;max-width:38em;line-height:1.55}
+  .c-src{font-family:var(--caps);font-size:clamp(9px,.9vw,11px);letter-spacing:.32em;color:var(--dim);margin:14px 0 0}
+  #card.title .c-t{font-size:clamp(50px,9vw,120px)}
+
+  /* 数据与注释 */
+  #stat{position:fixed;right:7vw;top:38%;transform:translateY(-50%);text-align:right;z-index:5;pointer-events:none;opacity:0;transition:opacity .9s}
+  #stat.show{opacity:1}
+  #stat .n{font-family:var(--caps);font-weight:600;font-size:clamp(40px,6.6vw,92px);line-height:1;color:#fff;
+    font-variant-numeric:tabular-nums;text-shadow:0 2px 26px rgba(0,0,0,.35)}
+  #stat .u{font-family:var(--caps);font-weight:600;font-size:clamp(10px,1.15vw,14px);letter-spacing:.42em;color:var(--gold);margin-top:12px}
+  #stat .z{font-family:var(--serif);font-weight:600;font-size:clamp(14px,1.6vw,20px);color:var(--soft);margin-top:6px;letter-spacing:.2em}
+  #stat .bar{height:2px;background:rgba(255,255,255,.2);margin-top:14px;position:relative;overflow:hidden}
+  #stat .bar i{position:absolute;inset:0 auto 0 0;width:0;background:var(--gold)}
+  #lower{position:fixed;left:max(5vw,18px);top:max(8vh,56px);z-index:5;pointer-events:none;display:flex;gap:14px;
+    opacity:0;transform:translateX(-14px);transition:opacity .7s ease,transform .8s ease;max-width:min(560px,80vw);
+    padding:12px 18px 12px 12px;border-radius:4px;background:rgba(14,11,8,.42);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+  #lower.show{opacity:1;transform:none}
+  #lower .bar{width:3px;flex:none;background:var(--gold);border-radius:2px}
+  #lower .l1{font-family:var(--caps);font-weight:600;font-size:clamp(9px,.95vw,12px);letter-spacing:.32em;color:var(--gold);margin:2px 0 7px}
+  #lower .l2{font-weight:700;font-size:clamp(16px,1.9vw,25px);color:#fff;margin:0;line-height:1.3;text-shadow:0 1px 4px rgba(0,0,0,.55)}
+  #lower .l3{font-family:"Segoe UI","Helvetica Neue",Arial,var(--sans);font-size:clamp(12px,1.25vw,15px);color:var(--soft);margin:5px 0 0;line-height:1.5;text-shadow:0 1px 4px rgba(0,0,0,.55)}
+  @media (max-aspect-ratio:1/1){
+    #stat{right:auto;left:50%;top:13%;transform:translateX(-50%);text-align:center}
+  }
+
+  /* 进度与控制 */
+  #prog{position:fixed;left:0;right:0;bottom:0;height:2px;background:rgba(255,255,255,.08);z-index:6;opacity:0;transition:opacity 1s}
+  #prog i{display:block;height:100%;width:0;background:var(--gold);transition:width .6s linear}
+  body.playing #prog{opacity:1}
+  #ctrl{position:fixed;right:max(14px,env(safe-area-inset-right));top:max(14px,env(safe-area-inset-top));
+    display:flex;gap:6px;z-index:8;opacity:0;pointer-events:none;transition:opacity .45s}
+  body.playing.ui #ctrl{opacity:1;pointer-events:auto}
+  #ctrl button{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:rgba(20,16,12,.42);
+    color:#fff;display:grid;place-items:center;cursor:pointer;padding:0;font-size:12px;
+    -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+  #ctrl button:hover{background:rgba(232,178,90,.22)}
+  #ctrl button[aria-pressed="false"]{color:var(--dim)}
+  #ctrl svg{width:18px;height:18px;fill:currentColor}
+  #paused{position:fixed;left:50%;top:44%;transform:translate(-50%,-50%);z-index:7;pointer-events:none;
+    font-family:var(--caps);font-weight:600;font-size:13px;letter-spacing:.4em;color:#fff;opacity:0;transition:opacity .3s;text-shadow:0 0 12px #000}
+  body.is-paused #paused{opacity:.9}
+
+  /* 开场与片尾 */
+  .overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+    padding:24px 16px;z-index:10;transition:opacity 1s ease;overflow-y:auto;
+    background:radial-gradient(ellipse at 50% 42%,rgba(20,14,10,.1),rgba(20,14,10,.62) 75%)}
+  .overlay.hide{opacity:0;pointer-events:none}
+  .overlay{justify-content:safe center}
+  .overlay > *{flex:none}
+  .o-kick{font-family:var(--caps);font-weight:600;font-size:11px;letter-spacing:.45em;color:var(--gold);margin:0 0 18px;padding-left:.45em}
+  .o-title{font-family:var(--serif);font-weight:900;font-size:clamp(44px,8.5vw,108px);letter-spacing:.14em;margin:0;padding-left:.14em;line-height:1.12;
+    color:#fff;text-shadow:0 4px 40px rgba(0,0,0,.5)}
+  .o-en{font-family:var(--caps);font-weight:500;font-size:clamp(11px,1.4vw,16px);letter-spacing:.42em;color:var(--soft);margin:18px 0 34px;padding-left:.42em}
+  #go{display:inline-flex;align-items:center;gap:14px;border:1px solid rgba(255,255,255,.55);background:rgba(20,16,12,.35);color:#fff;
+    border-radius:999px;padding:12px 30px 12px 22px;cursor:pointer;font-family:var(--caps);font-weight:600;font-size:13px;letter-spacing:.3em;
+    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:background .25s,border-color .25s}
+  #go:hover{background:rgba(232,178,90,.25);border-color:var(--gold)}
+  #go svg{width:18px;height:18px;fill:var(--gold)}
+  .opts{display:grid;grid-template-columns:auto auto;gap:10px 12px;align-items:center;font-size:13px;color:var(--soft);margin-top:30px}
+  .opts .lab{text-align:right;white-space:nowrap;font-size:12.5px}
+  .opts .val{text-align:left;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:rgba(20,16,12,.3)}
+  .seg button{font-size:12.5px;color:var(--soft);background:none;border:0;padding:6px 12px;cursor:pointer}
+  .seg button[aria-pressed="true"]{background:rgba(232,178,90,.28);color:#fff}
+  select{font:inherit;font-size:12.5px;width:min(58vw,280px);background:rgba(20,16,12,.7);color:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+  input[type=range]{width:min(46vw,210px);accent-color:var(--gold);margin:0}
+  input[type=range]:disabled, input[type=range]:disabled + .dv{opacity:.35}
+  .dv{font-family:var(--caps);font-size:11.5px;color:var(--soft);min-width:2.2em}
+  .mini{font-size:12px;border:1px solid var(--line);background:rgba(20,16,12,.3);color:#fff;border-radius:999px;padding:5px 11px;cursor:pointer}
+  .note{font-size:12.5px;color:#F3CF8C;min-height:1.3em;margin:14px 0 0;max-width:36em;line-height:1.7}
+  .hint{margin:14px 0 0;font-size:12px;color:var(--dim);line-height:1.9}
+  .pill{font-family:var(--caps);font-weight:600;font-size:12.5px;letter-spacing:.2em;border:1px solid rgba(255,255,255,.55);
+    background:rgba(20,16,12,.35);color:#fff;border-radius:999px;padding:12px 26px;cursor:pointer}
+  .pill:hover{background:rgba(232,178,90,.25);border-color:var(--gold)}
+  #end .fact{max-width:34em;font-size:13px;line-height:1.8;color:var(--soft);margin:26px 0 0}
+  #end .fact span{display:block;font-family:var(--quote);font-style:italic;font-size:12.5px;color:var(--dim)}
+  @media (max-height:560px){.o-en{margin:10px 0 18px}.opts{margin-top:16px}.hint{display:none}}
+</style>
+</head>
+<body class="sub-both">
+<canvas id="stage" aria-hidden="true"></canvas>
+<div class="scrim" aria-hidden="true"></div>
+<div id="subs" aria-live="polite"><p id="zh" class="zh" lang="zh-CN"></p><p id="en" class="en" lang="en"></p></div>
+<div id="card" aria-live="polite"><p class="c-no"></p><p class="c-t"></p><p class="c-en"></p><div class="c-line"></div><p class="c-q"></p><p class="c-qe"></p><p class="c-src"></p></div>
+<div id="stat" aria-hidden="true"><div class="n">0</div><div class="u"></div><div class="z"></div><div class="bar"><i></i></div></div>
+<div id="lower" aria-live="polite"><div class="bar"></div><div><p class="l1"></p><p class="l2"></p><p class="l3"></p></div></div>
+<div id="prog" aria-hidden="true"><i></i></div>
+<div id="paused" aria-hidden="true">PAUSED · 暂停</div>
+
+<div id="ctrl" role="toolbar" aria-label="播放控制">
+  <button id="b-prev" type="button" title="上一段 (←)" aria-label="上一段"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+  <button id="b-play" type="button" title="暂停 / 继续 (空格)" aria-label="暂停"><svg viewBox="0 0 24 24"><path id="i-play" d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg></button>
+  <button id="b-next" type="button" title="下一段 (→)" aria-label="下一段"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+  <button id="b-music" type="button" title="配乐 (M)" aria-label="配乐" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M9 4v10.6A3.5 3.5 0 1 0 11 18V8h7V4z"/></svg></button>
+  <button id="b-sub" type="button" title="字幕 (S)" aria-label="切换字幕">中英</button>
+  <button id="b-full" type="button" title="全屏 (F)" aria-label="全屏"><svg viewBox="0 0 24 24"><path d="M4 4h6v2H6v4H4zM14 4h6v6h-2V6h-4zM4 14h2v4h4v2H4zM18 14h2v6h-6v-2h4z"/></svg></button>
+</div>
+
+<div id="start" class="overlay">
+  <p class="o-kick">一个来自中国古代的传说 · A LEGEND FROM ANCIENT CHINA</p>
+  <h1 class="o-title">盘古开天辟地</h1>
+  <p class="o-en">PANGU AND THE BIRTH OF HEAVEN AND EARTH</p>
+  <button id="go" type="button"><svg viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></svg>播放 · PLAY</button>
+  <div class="opts">
+    <span class="lab">配音 Narration</span>
+    <span class="val"><span class="seg" id="o-narr"><button type="button" data-v="zh">中文</button><button type="button" data-v="en">English</button><button type="button" data-v="off">关</button></span></span>
+    <span class="lab">音色 Voice</span>
+    <span class="val"><span class="seg" id="o-gen"><button type="button" data-v="m">低沉男声</button><button type="button" data-v="f">女声</button></span></span>
+    <span class="lab">低沉 Depth</span>
+    <span class="val"><input type="range" id="o-depth" min="0" max="100" step="1" aria-label="声音的低沉程度"><span id="o-depth-v" class="dv"></span></span>
+    <span class="lab">声音 Speaker</span>
+    <span class="val"><select id="o-voice" aria-label="选择配音的声音"></select><button type="button" class="mini" id="o-test">试听</button></span>
+    <span class="lab">字幕 Subtitles</span>
+    <span class="val"><span class="seg" id="o-sub"><button type="button" data-v="both">中英</button><button type="button" data-v="zh">中</button><button type="button" data-v="en">EN</button><button type="button" data-v="off">关</button></span></span>
+  </div>
+  <p class="note" id="note"></p>
+  <p class="hint"><span id="hint-gen">画面、配乐和配音都由浏览器实时生成</span> · 建议全屏并打开声音<br>空格 暂停 · ← → 换一段 · F 全屏</p>
+</div>
+
+<div id="end" class="overlay hide">
+  <p class="o-kick">盘古开天辟地 · PANGU</p>
+  <p class="o-title">完</p>
+  <p class="o-en">THE END</p>
+  <button id="again" type="button" class="pill">↻ 再看一遍 · WATCH AGAIN</button>
+  <p class="fact">盘古的故事最早记载于三国时期徐整所著的《三五历纪》和《五运历年纪》，距今大约一千八百年。
+    <span>The earliest written record of Pangu comes from Xu Zheng’s Sanwu Liji and Wuyun Linian Ji, written in the 3rd century — about 1,800 years ago.</span></p>
+  <p class="hint">下一集：女娲造人与补天 · NEXT: NÜWA MAKES PEOPLE AND MENDS THE SKY</p>
+</div>
+
+<script>
+'use strict';
+/* ================= 工具 ================= */
+const TAU = Math.PI * 2, PI = Math.PI;
+const clamp = (x, a = 0, b = 1) => x < a ? a : x > b ? b : x;
+const lerp = (a, b, t) => a + (b - a) * t;
+const smooth = t => { t = clamp(t); return t * t * (3 - 2 * t); };
+const sstep = (a, b, x) => smooth((x - a) / (b - a));
+const EASE = {
+  lin: t => t,
+  io: t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+  o: t => 1 - Math.pow(1 - t, 3),
+  i: t => t * t * t,
+  s: t => smooth(t),
+  back: t => { const c = 1.6; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); },
+  stair: t => { const n = 6, k = Math.min(n - 1, Math.floor(t * n)); return (k + EASE.io(clamp(t * n - k))) / n; }
+};
+function rng(seed) { let s = seed >>> 0 || 1; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function hash(n) { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+function noise1(x) { const i = Math.floor(x), f = x - i; return lerp(hash(i), hash(i + 1), f * f * (3 - 2 * f)) * 2 - 1; }
+function fbm(x) { return noise1(x) * .55 + noise1(x * 2.1 + 7.3) * .28 + noise1(x * 4.3 + 1.7) * .17; }
+const ridged = x => Math.pow(1 - Math.abs(noise1(x)), 2);
+const along = (p, a, l) => [p[0] + Math.sin(a) * l, p[1] - Math.cos(a) * l];   /* 角度 0 朝上, 顺时针为正 */
+const hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+const mixc = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
+const mulc = (a, k) => [a[0] * k, a[1] * k, a[2] * k];
+const rgba = (c, a = 1) => `rgba(${Math.round(clamp(c[0], 0, 255))},${Math.round(clamp(c[1], 0, 255))},${Math.round(clamp(c[2], 0, 255))},${clamp(a)})`;
+const WHITE = [255, 255, 255];
+
+/* ================= 色调: 每个场景一套 =================
+   bg: 背景三段渐变 · glow: 光源处的光晕 · light: 主光颜色 · amb: 盘古身上的底色 · haze: 雾气 · ink: 混沌里的墨色浓度 */
+const PAL_SRC = {
+  cosmos:  {bg:['#2c2430','#4a3b44','#2e2422'], glow:'#9a7658', glowA:.3, light:'#ffc98a', amb:'#8a5230', haze:'#5c4c52', ink:1},
+  womb:    {bg:['#1f0d07','#48220f','#1a0906'], glow:'#c0722a', glowA:.45, light:'#ffb868', amb:'#c7712e', haze:'#5c2c12', ink:.55},
+  crack:   {bg:['#3c2c1e','#8c6c46','#2c1c10'], glow:'#fff0c8', glowA:.7,  light:'#fff1cf', amb:'#a8683a', haze:'#e8cfa0', ink:.3},
+  divide:  {bg:['#123060','#74a8d8','#4a3220'], glow:'#fff4dc', glowA:.5,  light:'#fff4dc', amb:'#8f5d38', haze:'#dcebf6', ink:0},
+  day:     {bg:['#12325f','#5f96ca','#e8c998'], glow:'#fff0cf', glowA:.38, light:'#ffe6b8', amb:'#7d4e31', haze:'#d8e6f0', ink:0},
+  night:   {bg:['#070c1f','#13274c','#2d3a5a'], glow:'#9fb4ff', glowA:.18, light:'#a8bcff', amb:'#3c2e32', haze:'#2c3c5c', ink:0},
+  dusk:    {bg:['#1d1938','#70304c','#e27c40'], glow:'#ff9a55', glowA:.5,  light:'#ffa360', amb:'#5c3022', haze:'#c4725c', ink:0},
+  twilight:{bg:['#101832','#2c3c64','#6c5c70'], glow:'#b8a0c8', glowA:.22, light:'#c9b8e8', amb:'#4c3c3c', haze:'#5c5c7c', ink:0},
+  dawn:    {bg:['#1e3766','#80aad2','#f4d4a2'], glow:'#ffe3b0', glowA:.42, light:'#ffe0a6', amb:'#6c4c3c', haze:'#e6e0d8', ink:0},
+  sunset:  {bg:['#232752','#9a4c5c','#f08c4c'], glow:'#ff9c5c', glowA:.5,  light:'#ffb070', amb:'#5c3428', haze:'#c88070', ink:0},
+  golden:  {bg:['#2c3f68','#c08c6c','#f5c680'], glow:'#ffd08a', glowA:.5,  light:'#ffcf8a', amb:'#6c4834', haze:'#f0d0a8', ink:0}
+};
+const PALS = {};
+for (const k in PAL_SRC) {
+  const s = PAL_SRC[k];
+  PALS[k] = {bg0:hex(s.bg[0]), bg1:hex(s.bg[1]), bg2:hex(s.bg[2]), glow:hex(s.glow), glowA:s.glowA, light:hex(s.light), amb:hex(s.amb), haze:hex(s.haze), ink:s.ink};
+}
+const PKEYS_C = ['bg0', 'bg1', 'bg2', 'glow', 'light', 'amb', 'haze'], PKEYS_N = ['glowA', 'ink'];
+function mixPal(a, b, t, out = {}) {
+  for (const k of PKEYS_C) out[k] = mixc(a[k], b[k], t);
+  for (const k of PKEYS_N) out[k] = lerp(a[k], b[k], t);
+  return out;
+}
+
+/* ================= 章节卡 ================= */
+const CARDS = {
+  title:{no:'一个来自中国古代的传说 · A LEGEND FROM ANCIENT CHINA', t:'盘古开天辟地', en:'PANGU AND THE BIRTH OF HEAVEN AND EARTH'},
+  ch1:{no:'第一章 · CHAPTER ONE', t:'混沌', en:'CHAOS', q:'天地浑沌如鸡子，盘古生其中。',
+    qe:'Heaven and earth were a formless chaos, like a hen’s egg — and Pangu was born within it.', src:'《三五历纪》 · SANWU LIJI'},
+  ch2:{no:'第二章 · CHAPTER TWO', t:'苏醒', en:'THE AWAKENING'},
+  ch3:{no:'第三章 · CHAPTER THREE', t:'开天辟地', en:'THE GREAT DIVIDE', q:'阳清为天，阴浊为地。',
+    qe:'The light and clear became heaven; the heavy and murky became earth.', src:'《三五历纪》 · SANWU LIJI'},
+  ch4:{no:'第四章 · CHAPTER FOUR', t:'顶天立地', en:'HOLDING UP THE SKY', q:'天日高一丈，地日厚一丈，盘古日长一丈。',
+    qe:'Each day the sky rose one zhang higher, the earth grew one zhang thicker, and Pangu grew one zhang taller.', src:'《三五历纪》 · SANWU LIJI'},
+  ch5:{no:'第五章 · CHAPTER FIVE', t:'化生万物', en:'THE WORLD IS BORN', q:'左眼为日，右眼为月。',
+    qe:'His left eye became the sun, and his right eye became the moon.', src:'《五运历年纪》 · WUYUN LINIAN JI'},
+  epi:{no:'尾声 · EPILOGUE', t:'新的世界', en:'A NEW WORLD', q:'故天去地九万里。',
+    qe:'And so heaven and earth stand ninety thousand li apart.', src:'《三五历纪》 · SANWU LIJI'}
+};
+
+/* ================= 分镜脚本 =================
+   有 zh/en 的是旁白; 有 card 的是章节卡(不念)。
+   k: 参数: [目标, 时长('@'=这句话的长度), 延迟, 缓动]; '@hx'/'@hy' = 盘古头部的位置
+   pal: 色调 [名称, 时长, 延迟] · mood: 配乐段落 · call: 化身注释 · info: 纪录片数据画面 */
+const CUES = [
+ {card:'title', dur:7.2, mood:'title', k:{chaos:[.8,6], camZ:[.9,.01]}},
+ {zh:'在中国，有一个流传了一千多年的古老传说，讲的是天和地是怎么来的。',
+  en:'In China, there is an ancient legend, told for more than a thousand years, about how the sky and the earth came to be.',
+  pre:.4, post:1.4, k:{camZ:[1,9,0,'s']}},
+ {card:'ch1', dur:5.2, mood:'chaos'},
+ {zh:'很久很久以前，没有天，也没有地。', en:'Long, long ago, there was no sky, and there was no earth.',
+  pre:.5, post:1, k:{chaos:[1,4]}},
+ {zh:'没有太阳，没有月亮，没有山，也没有水。', en:'There was no sun, no moon, no mountains, and no water.',
+  pre:.3, post:1.3, ev:[[{zh:'太阳',en:'sun'},'ghost0'],[{zh:'月亮',en:'moon'},'ghost1'],[{zh:'山',en:'mountains'},'ghost2'],[{zh:'水',en:'water'},'ghost3']]},
+ {zh:'整个世界黑乎乎的，什么都混在一起，像一个大鸡蛋。', en:'The whole world was dark and murky, with everything mixed up together, like a giant egg.',
+  pre:.3, post:1.6, ev:[[{zh:'像一个',en:'like a'},'formEgg',{eggForm:[1,3.6], egg:[1,2.8,1]}]]},
+ {zh:'这个大鸡蛋里面，睡着一个人，他叫盘古。', en:'Inside this giant egg, someone was fast asleep. His name was Pangu.',
+  pre:.6, post:1.3, mood:'egg', pal:['womb',5,.5], k:{eggIn:[1,3.5,.6], pgGlow:[.35,3], zzz:[.5,2,3], camZ:[1.28,9,0,'s'], camY:[-40,9,0,'s']},
+  ev:[[{zh:'盘古',en:'Pangu'},'nameGlow']]},
+ {zh:'盘古在里面睡了多久呢？一万八千年。', en:'How long did Pangu sleep in there? Eighteen thousand years!',
+  pre:.4, post:1.9, ev:[[{zh:'一万',en:'Eighteen'},'count']]},
+ {zh:'他就那么蜷着身子，一直睡，一直睡。', en:'He stayed curled up like that, sleeping and sleeping.',
+  pre:.3, post:1.6, k:{zzz:[1,1.5]}, ev:[[1.2,'statOff']]},
+ {card:'ch2', dur:4.4, mood:'awaken', k:{zzz:[0,1.2]}},
+ {zh:'有一天，他醒了。', en:'Then one day, he woke up.',
+  pre:1.4, post:.6, k:{camX:['@hx',2.8], camY:['@hy',2.8], camZ:[3,2.8], breathe:[.3,1.5], dark:[.8,2]},
+  ev:[[{zh:'醒',en:'woke'},'wake',{eyes:[1,.35]}]]},
+ {zh:'他睁开眼睛，什么也看不见。', en:'He opened his eyes, but he couldn’t see a thing.',
+  pre:.3, post:1, pose:[['curlAwake',1.4]], fx:'look'},
+ {zh:'伸伸手，摸到的全是黏糊糊的东西。', en:'He reached out his hand, and everything he touched was sticky and gooey.',
+  pre:.3, post:1, pose:[['reach',1.6]], k:{camX:[60,2.4], camY:[-100,2.4], camZ:[1.75,2.4], dark:[.4,1.5]}, ev:[[{zh:'黏',en:'sticky'},'goo']]},
+ {zh:'他想站起来，头顶被挡住了；', en:'He tried to stand up, but his head bumped into something;',
+  pre:.2, post:.35, mood:'tension', pose:[['pushUp',1.1,0,'o']], k:{camX:[0,1.6], camY:[-60,1.6], camZ:[1.2,1.6], dark:[.15,1]},
+  ev:[[{zh:'挡住',en:'bumped'},'bumpTop']]},
+ {zh:'想伸开腿，脚也被挡住了。', en:'he tried to stretch out his legs, but his feet were blocked too.',
+  pre:.2, post:.9, pose:[['kick',1,0,'o']], ev:[[{zh:'挡住',en:'blocked'},'bumpFeet']]},
+ {zh:'盘古急了。', en:'Pangu got really upset.',
+  pre:.2, post:1.1, mood:'build', pose:[['angry',.6]], k:{brow:[-1,.5], pgGlow:[.6,1], dark:[0,1], camX:['@hx',1.2], camY:['@hy+50',1.2], camZ:[2,1.2]},
+  fx:'tremble', ev:[[.1,'grr']]},
+ {zh:'他摸到身边有一把大斧头，抓起来，', en:'He felt a great big axe beside him, and he grabbed it,',
+  pre:.2, post:.3, pose:[['grab',1.3]], k:{axe:[1,1.2,.4], camX:[30,1.5], camY:[-40,1.5], camZ:[1.35,1.5]}, ev:[[{zh:'斧头',en:'axe'},'shing']]},
+ {zh:'朝着头顶上用力一劈——', en:'and swung it over his head with all his might —',
+  pre:.1, post:.2, pose:[['windup',1.1]], k:{camX:[0,1.5], camY:[-60,1.5], camZ:[1.12,1.5]}, ev:[[0,'riser']]},
+ {zh:'咔嚓！', en:'CRACK!',
+  pre:.5, post:1, min:2.6, mood:'impact', pose:[['strike',.16,.24,'i']], pal:['crack',.5,.4], ev:[[.4,'impact',{crack:[.3,.25,0,'o']}]]},
+ {zh:'大鸡蛋裂开了一道缝。', en:'The giant egg split open with a crack.',
+  pre:.3, post:1, k:{crack:[1,2.2,0,'o'], rays:[.8,2], camZ:[1,3]}, ev:[[.1,'crackle']]},
+ {card:'ch3', dur:4.6, mood:'divide'},
+ {zh:'轻的、干净的东西，从缝里慢慢往上飘，飘啊飘，变成了天。', en:'The light, clear things slowly floated up through the crack — up, up, up — and became the sky.',
+  pre:.3, post:1, pal:['divide',6,.5], pose:[['crouchUp',2]],
+  k:{splitUp:[1,6,0,'s'], sky:[1,4,2], camZ:[.62,6,0,'io'], camY:[0,6], rays:[0,5,2.5], brow:[.2,1], pgGlow:[.6,3], pgLit:[1,4,1.5], ly:[-700,4]}},
+ {zh:'重的、浑浊的东西，慢慢往下沉，沉啊沉，变成了地。', en:'The heavy, muddy things slowly sank down — down, down, down — and became the earth.',
+  pre:.3, post:1, pose:[['crouchDown',2]], k:{splitDn:[1,5.5,0,'s'], earth:[1,4,1.5], egg:[0,3.5], axe:[0,2]}},
+ {zh:'盘古看见光了，他很高兴。', en:'Pangu could see light! He was so happy.',
+  pre:.3, post:.9, mood:'joy', pose:[['joy',2.2]], k:{pgMode:[1,2.2], pgH:[780,2.2], smile:[1,1.5], brow:[.1,1], hairGrav:[1,2], camZ:[.66,3]}},
+ {zh:'可是他马上又担心起来：天和地刚刚分开，万一又合回去怎么办？', en:'But then he began to worry: the sky and the earth had only just come apart. What if they closed up again?',
+  pre:.3, post:1, mood:'worry', pose:[['worry',1.8]], k:{brow:[1,1], smile:[-.4,1.5], skyY:[-215,4,1.5], gY:[392,4,1.5]}, fx:'quake'},
+ {card:'ch4', dur:4.8, mood:'heroic', pal:['day',4], k:{lx:[-700,4], ly:[-1100,4]}},
+ {zh:'于是他站在天和地的中间，用头顶着天，用脚踩着地，使劲往上撑。', en:'So he stood between the sky and the earth, holding up the sky with his head and pushing down the earth with his feet, pushing up with all his strength.',
+  pre:.3, post:1, pose:[['hold',1.6,.2]], k:{brow:[-.5,1], smile:[0,1], gY:[420,2.5,.8], pgGlow:[.8,2], camZ:[.6,5], camY:[-30,5]},
+  ev:[[1,'drum'],[{zh:'使劲',en:'with all'},'drum']]},
+ {zh:'天每天升高一点，地每天变厚一点，盘古的身子也每天长高一点。', en:'Every day, the sky rose a little higher, the earth grew a little thicker, and Pangu grew a little taller.',
+  pre:.3, post:.8, mood:'timelapse', k:{pgH:[930,'@',0,'stair'], strata:[.45,'@'], dayCyc:[.5,1.5]}, ev:[[.6,'zhang']]},
+ {zh:'他就这样撑着，一天，一年，一百年，一千年，不知道撑了多少年。', en:'He kept on holding it up — one day, one year, a hundred years, a thousand years — nobody knows how many years.',
+  pre:.3, post:1, k:{pgH:[1150,'@',0,'s'], strata:[1,'@'], dayCyc:[1,2], camZ:[.5,'@'], camY:[-80,'@']},
+  ev:[[{zh:'一天',en:'one day'},'lab0'],[{zh:'一年',en:'one year'},'lab1'],[{zh:'一百年',en:'hundred'},'lab2'],[{zh:'一千年',en:'thousand'},'lab3']]},
+ {zh:'天很高了，地很厚了，再也合不回去了。', en:'Now the sky was very high, and the earth was very thick. They could never close up again.',
+  pre:.4, post:1.4, mood:'grand', k:{dayCyc:[0,2], camZ:[.46,5], camY:[-110,5]}, ev:[[.3,'chord'],[.2,'statOff']]},
+ {card:'ch5', dur:4.8, mood:'sad', pal:['dusk',5], k:{lx:[-1600,5], ly:[300,5]}},
+ {zh:'可是盘古太累了。', en:'But Pangu was so very tired.',
+  pre:.6, post:.9, on:'keepSky', pose:[['tired',3.2]], k:{skyY:[-700,.01], pgGlow:[.4,3], brow:[.8,2], smile:[-.2,2], camZ:[.72,5], camY:[-200,5]}},
+ {zh:'他慢慢倒下来，再也没有起来。', en:'Slowly, he sank to the ground, and he never got up again.',
+  pre:.3, post:2.2, pose:[['kneel',2.4],['lie',3.4,2.3]], pal:['twilight',6,2.5],
+  k:{camZ:[.8,5,2.2], camY:[233,5,2.2], land:[1,4,2.8], sky:[.2,4,2.8], brow:[0,2,3], smile:[0,2,3], eyes:[0,1.6,4.2], chaos:[.3,4,2]},
+  ev:[[5.4,'thud']]},
+ {zh:'他倒下以后，身上的东西一样一样变了。', en:'After he fell, the parts of his body began to change, one by one.',
+  pre:.7, post:.8, mood:'magic', k:{shimmer:[1,2]}, ev:[[.2,'chimes']]},
+ {zh:'左眼变成了太阳，', en:'His left eye became the sun,',
+  pre:.2, post:.7, pal:['dawn',4.5,.6], k:{sun:[1,3.4]}, ev:[[.1,'sunUp']], call:{zh:'左眼 → 太阳', en:'LEFT EYE → SUN', at:'sun'}},
+ {zh:'右眼变成了月亮。', en:'and his right eye became the moon.',
+  pre:.2, post:.9, k:{moon:[1,3.4]}, ev:[[.1,'moonUp']], call:{zh:'右眼 → 月亮', en:'RIGHT EYE → MOON', at:'moon'}},
+ {zh:'头发和胡子，变成了天上的星星。', en:'His hair and his beard became the stars in the sky.',
+  pre:.2, post:1, k:{hairFly:[1,3.8,0,'s'], stars:[1,3.5,1.2]}, ev:[[.2,'twinkle']], call:{zh:'头发、胡子 → 星星', en:'HAIR & BEARD → STARS', at:'stars'}},
+ {zh:'他呼出的最后一口气，变成了风和云。', en:'His very last breath became the wind and the clouds.',
+  pre:.2, post:1, k:{breath:[1,3.6,.3,'lin'], clouds:[1,4,1.2], wind:[1,3,1.5]}, ev:[[.3,'windS']], call:{zh:'气息 → 风和云', en:'BREATH → WIND & CLOUDS', at:'clouds'}},
+ {zh:'他的血变成江河，', en:'His blood became the rivers,',
+  pre:.2, post:.7, k:{rivers:[1,3.6,0,'o']}, ev:[[.2,'water']], call:{zh:'血 → 江河', en:'BLOOD → RIVERS', at:'rivers'}},
+ {zh:'他的肉变成田地，', en:'his flesh became the fields,',
+  pre:.2, post:.7, k:{fields:[1,3,0,'o']}, ev:[[.2,'fieldS']], call:{zh:'肉 → 田地', en:'FLESH → FIELDS', at:'fields'}},
+ {zh:'他的骨头变成石头，', en:'his bones became the rocks,',
+  pre:.2, post:.7, k:{stones:[1,2.6,0,'o']}, ev:[[.2,'knocks']], call:{zh:'骨头 → 石头', en:'BONES → ROCKS', at:'stones'}},
+ {zh:'他的身子和四肢，变成了大地上高高的山。', en:'and his body, his arms and his legs became the tall mountains across the land.',
+  pre:.2, post:1.6, k:{mtn:[1,4.8,.2], bodyFade:[1,4.2,.6], shimmer:[0,4]}, ev:[[.3,'rumble']], call:{zh:'身体 → 高山', en:'BODY → MOUNTAINS', at:'mtn'}},
+ {card:'epi', dur:4.8, mood:'finale'},
+ {zh:'从那以后，世界上有了白天和黑夜，', en:'From then on, the world had day and night,',
+  pre:.6, post:.6, k:{wheel:[1,2.5], wheelA:[TAU,'@+1.5',.5]}},
+ {zh:'有了山，有了水，有了风。', en:'it had mountains, it had water, and it had wind.',
+  pre:.2, post:1.4, k:{wheelA:[TAU + 1.1,9,0,'lin']},
+  ev:[[{zh:'山',en:'mountains'},'glintM'],[{zh:'水',en:'water'},'glintW'],[{zh:'风',en:'wind'},'gust']]},
+ {zh:'只是还没有人。', en:'But there were no people yet.',
+  pre:1, post:3.6, mood:'end', k:{camZ:[.7,8,0,'s'], wheelA:[TAU + 1.8,10,0,'lin']}}
+];
+
+/* 画面参数的初始值 */
+const P0 = {
+  chaos:.45, eggForm:0, egg:0, eggIn:0, dark:0, zzz:0, breathe:1,
+  crack:0, rays:0, splitUp:0, splitDn:0,
+  sky:0, earth:0, skyY:-340, gY:420, strata:0,
+  pgMode:0, pgH:620, pgGlow:.25, pgLit:0, eyes:0, brow:0, smile:0, axe:0, hairGrav:.55,
+  dayCyc:0, camX:0, camY:0, camZ:1, lx:0, ly:-60,
+  land:0, shimmer:0, sun:0, moon:0, hairFly:0, stars:0, breath:0, clouds:0, wind:0,
+  rivers:0, fields:0, stones:0, mtn:0, bodyFade:0, wheel:0, wheelA:0
+};
+const P = Object.assign({}, P0);
+const G = {
+  ghosts:[], bumps:[], trail:[], countT:-99, gooT:-99, wakeT:-99, nameT:-99, shingT:-99, swirlT:-99, impactT:-99,
+  flash:0, flashT:-99, shake:0, shakeT:-99, shakeD:.8, dayPhase:0, glintM:-99, glintW:-99, gust:-99, dustT:-99,
+  skyEff:-340, pgTop:0, eyeA:null, eyeB:null, mouth:null, hairPts:[], bodyCircles:[], peaks:[], fx:null,
+  cT:0, eT:0, day:0, J:null, pose:null, head:null, pel:null, jx:0, jy:0, call:null, callT:-99
+};
+
+/* ================= 配乐：用 Web Audio 实时合成的"管弦乐" =================
+   弦乐群、人声合唱、铜管、低音提琴、跳弓、太鼓、箫、古筝、钟, 按段落编排 */
+const AU = { ac:null, musicOn:true, ks:{}, riser:null };
+const SC = { sec:null, name:'', t0:0, step:0, nextT:0, melI:0, melNext:1e9, live:[], walk:4 };
+const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+const CH = {                                   /* 和弦 (最低音给低音提琴) */
+  Dm:[38,50,57,62,65], Bb:[34,46,53,58,62], F:[41,53,60,65,69], C:[36,48,55,60,64], Gm:[43,50,55,58,62],
+  A:[45,52,57,61,64], Eb:[39,51,58,63,67], Dm9:[38,50,57,60,64], Bbmaj7:[34,46,53,57,62], D:[38,50,57,62,66],
+  DmLow:[26,38,45,50,53], BbLow:[34,41,46,50,53]
+};
+const SECS = {
+  title:    {bpm:60, prog:[['Dm',8],['Bb',8]], str:.5, choir:.22, bass:.5, flute:'theme', fv:.5, bells:.15, braam:1},
+  chaos:    {bpm:50, prog:[['DmLow',8],['BbLow',8]], str:.42, choir:.3, bass:.45, whisper:.6, boom:.22},
+  egg:      {bpm:56, prog:[['Dm9',8],['Bbmaj7',8]], str:.4, bass:.35, hb:.55, zheng:'slow', zv:.26},
+  awaken:   {bpm:72, prog:[['Dm',4],['Bb',4],['Gm',4],['A',4]], str:.45, bass:.4, spic:.26, flute:'walk', fv:.3},
+  tension:  {bpm:84, prog:[['Dm',4],['Eb',4]], str:.45, bass:.45, spic:.4, taiko:'pulse', tv:.45},
+  build:    {bpm:92, prog:[['Dm',4],['Bb',4],['C',4],['A',4]], str:.55, bass:.5, spic:.5, taiko:'roll', tv:.6, trem:1},
+  impact:   {silent:1},
+  divide:   {bpm:60, prog:[['Dm',4],['F',4],['C',4],['Bb',4]], str:.5, choir:.55, bass:.4, bells:.35, zheng:'rise', zv:.22},
+  joy:      {bpm:76, prog:[['F',4],['C',4],['Dm',4],['Bb',4]], str:.45, bass:.35, zheng:'walk', zv:.28, flute:'walk', fv:.32},
+  worry:    {bpm:66, prog:[['Dm',4],['Bb',4]], str:.45, bass:.45, trem:1, spic:.24},
+  heroic:   {bpm:70, prog:[['Dm',4],['Bb',4],['F',4],['C',4]], str:.55, choir:.4, brass:.55, bass:.55, taiko:'hero', tv:.7, spic:.3, flute:'theme', fv:.42},
+  timelapse:{bpm:88, prog:[['Dm',2],['Bb',2],['F',2],['C',2]], str:.55, choir:.4, brass:.45, bass:.55, taiko:'drive', tv:.7, spic:.5},
+  grand:    {bpm:60, prog:[['F',8],['C',8]], str:.6, choir:.62, brass:.6, bass:.55, bells:.3, taiko:'hero', tv:.5},
+  sad:      {bpm:52, prog:[['Dm',8],['Bb',8],['Gm',8],['A',8]], str:.38, bass:.35, flute:'lament', fv:.5},
+  magic:    {bpm:64, prog:[['F',4],['C',4],['Dm',4],['Bb',4]], str:.35, choir:.3, bass:.3, zheng:'arp', zv:.22, bells:.45},
+  finale:   {bpm:66, prog:[['F',4],['C',4],['Dm',4],['Bb',4]], str:.55, choir:.5, brass:.5, bass:.5, taiko:'hero', tv:.55, flute:'theme', fv:.46, zheng:'arp', zv:.18},
+  end:      {bpm:56, prog:[['D',8],['Bbmaj7',8]], str:.35, bass:.3, zheng:'slow', zv:.24, flute:'theme', fv:.3}
+};
+/* 主题旋律 (D 羽调式五声: D F G A C), 每项 [音高, 拍数] */
+const THEME = [[69,2],[74,1],[72,1],[69,1.5],[67,.5],[65,2],[67,1],[69,1],[72,1],[74,1],[72,1.5],[69,.5],[67,2],
+  [69,2],[67,.5],[65,.5],[62,1],[65,1],[67,1],[69,2],[72,1],[74,2],[72,.5],[69,.5],[74,4]];
+const LAMENT = [[69,3],[67,1],[65,2],[62,2],[65,3],[67,1],[69,2],[65,2],[67,4],[65,2],[62,2],[69,4],[67,2],[69,2]];
+const PENTA = [0, 2, 5, 7, 9];
+const TAIKO = {hero:[1,0,0,0,.55,0,.4,0], drive:[1,0,.45,0,.8,0,.45,.35], pulse:[.5,0,0,0,.35,0,0,0]};
+
+function makeNoise(ac, sec, kind) {
+  const n = Math.floor(ac.sampleRate * sec), b = ac.createBuffer(1, n, ac.sampleRate), d = b.getChannelData(0);
+  let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, last = 0;
+  for (let i = 0; i < n; i++) {
+    const w = Math.random() * 2 - 1;
+    if (kind === 'pink') {
+      b0 = .99886 * b0 + w * .0555179; b1 = .99332 * b1 + w * .0750759; b2 = .969 * b2 + w * .153852;
+      b3 = .8665 * b3 + w * .3104856; b4 = .55 * b4 + w * .5329522; b5 = -.7616 * b5 - w * .016898;
+      d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * .5362) * .11; b6 = w * .115926;
+    } else if (kind === 'brown') { last = (last + .02 * w) / 1.02; d[i] = last * 3.5; }
+    else d[i] = w;
+  }
+  return b;
+}
+function makeIR(ac, sec) {
+  const sr = ac.sampleRate, n = Math.floor(sr * sec), b = ac.createBuffer(2, n, sr);
+  for (let c = 0; c < 2; c++) {
+    const d = b.getChannelData(c); let lp = 0;
+    for (let i = 0; i < n; i++) {
+      const t = i / n; lp += .3 * ((Math.random() * 2 - 1) - lp);
+      d[i] = lp * Math.pow(1 - t, 2.4) * (i < sr * .02 ? i / (sr * .02) : 1);
+    }
+  }
+  return b;
+}
+const distCurve = k => { const n = 1024, c = new Float32Array(n); for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; c[i] = Math.tanh(k * x) / Math.tanh(k); } return c; };
+
+function audioInit() {
+  if (AU.ac) return true;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return false;
+  let ac; try { ac = new AC(); } catch (e) { return false; }
+  AU.ac = ac;
+  const comp = ac.createDynamicsCompressor();
+  comp.threshold.value = -18; comp.knee.value = 10; comp.ratio.value = 3; comp.attack.value = .006; comp.release.value = .3;
+  const lim = ac.createDynamicsCompressor();
+  lim.threshold.value = -3; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = .001; lim.release.value = .12;
+  AU.master = ac.createGain(); AU.master.gain.value = .9;
+  AU.master.connect(comp); comp.connect(lim); lim.connect(ac.destination);
+  AU.verb = ac.createConvolver(); AU.verb.buffer = makeIR(ac, 5.2);
+  const vret = ac.createGain(); vret.gain.value = .8; AU.verb.connect(vret); vret.connect(AU.master);
+  /* 配乐总线: 段落淡入淡出 → 配音时压低 → 开关 → 干声 + 混响 */
+  AU.mIn = ac.createGain(); AU.mIn.gain.value = .68;
+  AU.mSec = ac.createGain(); AU.mSec.gain.value = 1;
+  AU.mDuck = ac.createGain(); AU.mDuck.gain.value = 1;
+  AU.mMute = ac.createGain(); AU.mMute.gain.value = 0;
+  AU.mIn.connect(AU.mSec); AU.mSec.connect(AU.mDuck); AU.mDuck.connect(AU.mMute); AU.mMute.connect(AU.master);
+  const mSend = ac.createGain(); mSend.gain.value = .6; AU.mMute.connect(mSend); mSend.connect(AU.verb);
+  AU.sIn = ac.createGain(); AU.sIn.gain.value = .8; AU.sIn.connect(AU.master);
+  AU.vIn = ac.createGain(); AU.vIn.gain.value = 1.1; AU.vIn.connect(AU.master);        /* 录好的旁白 */
+  AU.mMeter = ac.createAnalyser(); AU.mMeter.fftSize = 1024; AU.mBuf = new Float32Array(1024);   /* 配乐音量表, 给压低配乐用 */
+  if (AU.mMeter.getFloatTimeDomainData) AU.mSec.connect(AU.mMeter); else AU.mMeter = null;
+  const sSend = ac.createGain(); sSend.gain.value = .4; AU.sIn.connect(sSend); sSend.connect(AU.verb);
+  AU.noise = makeNoise(ac, 3, 'white'); AU.pink = makeNoise(ac, 4, 'pink'); AU.brown = makeNoise(ac, 4, 'brown');
+  /* 弦乐: 颤音 LFO + 震音 + 低通 */
+  SC.vib = ac.createOscillator(); SC.vib.frequency.value = 5.1; SC.vibG = ac.createGain(); SC.vibG.gain.value = 5;
+  SC.vib.connect(SC.vibG); SC.vib.start();
+  SC.strIn = ac.createGain();
+  SC.trem = ac.createGain(); SC.trem.gain.value = 1;
+  const tl = ac.createOscillator(); tl.frequency.value = 7.5; SC.tremG = ac.createGain(); SC.tremG.gain.value = 0;
+  tl.connect(SC.tremG); SC.tremG.connect(SC.trem.gain); tl.start();
+  const sf = ac.createBiquadFilter(); sf.type = 'lowpass'; sf.frequency.value = 1700; sf.Q.value = .4;
+  SC.strIn.connect(SC.trem); SC.trem.connect(sf); sf.connect(AU.mIn);
+  /* 合唱: 锯齿波经过 "啊" 的共振峰 */
+  SC.choirIn = ac.createGain(); const cOut = ac.createGain(); cOut.gain.value = 3.2; cOut.connect(AU.mIn);
+  for (const [f, q, gn] of [[700, 7, 1], [1150, 8, .55], [2600, 9, .3]]) {
+    const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f; bp.Q.value = q;
+    const g = ac.createGain(); g.gain.value = gn; SC.choirIn.connect(bp); bp.connect(g); g.connect(cOut);
+  }
+  fluteInit();
+  setInterval(scoreTick, 40);
+  return true;
+}
+
+function track(g, end, st = 0) { SC.live.push({g, end, st}); }   /* st = 这个音开始的时间 */
+function setSection(name) {
+  const s = SECS[name]; if (!s) return;
+  SC.name = name; SC.sec = s;
+  if (!AU.ac) return;
+  const t = AU.ac.currentTime;
+  for (const v of SC.live) {                               /* 旧段落的长音淡出 */
+    if (v.end < t) continue;
+    try { const cur = v.st > t ? 0 : v.g.gain.value; v.g.gain.cancelScheduledValues(t);   /* 还没开始的音: 直接静音, 不要从默认音量 1 开始淡出 */ v.g.gain.setValueAtTime(cur, t); v.g.gain.linearRampToValueAtTime(0, t + (s.silent ? .12 : 1.4)); } catch (e) {}
+  }
+  SC.live = [];
+  SC.t0 = t; SC.step = 0; SC.nextT = t + (s.silent ? 0 : .1); SC.melI = 0;
+  SC.melNext = s.flute === 'walk' ? 0 : s.flute ? 2 : 1e9;
+  if (!s.flute) fluteOff(t);
+  SC.tremG.gain.setTargetAtTime(s.trem ? .55 : 0, t, .3);
+  AU.mSec.gain.cancelScheduledValues(t);
+  AU.mSec.gain.setTargetAtTime(s.silent ? 0 : 1, t, s.silent ? .05 : .5);
+  if (s.braam) braam(t + .05, s.braam);
+}
+function scoreTick() {
+  duckTick(false);
+  const ac = AU.ac; if (!ac || ac.state !== 'running' || !SC.sec || SC.sec.silent) return;
+  const s = SC.sec, sd = 60 / s.bpm / 2, ahead = ac.currentTime + .25;
+  while (SC.nextT < ahead) {
+    const t = Math.max(SC.nextT, ac.currentTime + .02);
+    scoreStep(s, SC.step, t, sd);
+    SC.step++; SC.nextT = t + sd;
+  }
+  if (SC.live.length > 40) SC.live = SC.live.filter(v => v.end > ac.currentTime);
+}
+function scoreStep(s, k, t, sd) {
+  let total = 0; for (const c of s.prog) total += c[1] * 2;
+  const pos = k % total; let acc = 0, ci = 0;
+  for (; ci < s.prog.length; ci++) { const len = s.prog[ci][1] * 2; if (pos < acc + len) break; acc += len; }
+  const chord = CH[s.prog[ci][0]], cdur = s.prog[ci][1] * 2 * sd;
+  if (pos === acc) {
+    if (s.str) strings(chord.slice(1), t, cdur, s.str);
+    if (s.bass) bass(chord[0], t, cdur, s.bass);
+    if (s.choir) choir(chord.slice(2), t, cdur, s.choir);
+    if (s.brass) brass([chord[1], chord[2]], t, Math.min(cdur, 4.2), s.brass);
+  }
+  if (s.spic) { const pat = [0, 2, 1, 2]; spic(chord[1 + pat[k % 4]] + 12, t, s.spic * (k % 2 ? .6 : 1)); }
+  if (s.taiko) taikoStep(s, k, t);
+  if (s.hb && k % 3 === 0) { drum(t, .1 * s.hb, 60, 38, AU.mIn, .35); drum(t + .2, .07 * s.hb, 55, 36, AU.mIn, .35); }
+  if (s.zheng) zhengStep(s, k, t, chord);
+  if (s.flute) fluteStep(s, k, t, sd);
+  if (s.bells && k % 2 === 0 && Math.random() < s.bells * .22) {
+    const ns = pentaIn(81, 96); bell(mtof(ns[Math.floor(Math.random() * ns.length)]), t, .028, AU.mIn, .9);
+  }
+  if (s.whisper && k % 8 === 0 && Math.random() < .55) whisper(t, s.whisper);
+  if (s.boom && k % 16 === 0 && Math.random() < .6) drum(t, s.boom, 50, 28, AU.mIn, 3);
+}
+const pentaIn = (lo, hi) => { const o = []; for (let n = lo; n <= hi; n++) if (PENTA.includes(((n % 12) + 12) % 12)) o.push(n); return o; };
+function taikoStep(s, k, t) {
+  if (s.taiko === 'roll') {
+    const dens = clamp((t - SC.t0) / 8), every = dens > .66 ? 1 : dens > .33 ? 2 : 4;
+    if (k % every === 0) drum(t, s.tv * (.35 + .5 * dens), 95, 45, AU.mIn, .7);
+    return;
+  }
+  const a = TAIKO[s.taiko][k % 8];
+  if (a) { drum(t, s.tv * a, 88, 40, AU.mIn, 1.3); if (a > .9) noiseHit(t, s.tv * .12, 'lowpass', 1200, .08, .8, AU.mIn); }
+}
+function zhengStep(s, k, t, chord) {
+  const v = s.zv || .25, up = chord.slice(1).map(n => n + 12);
+  if (s.zheng === 'slow') { if (k % 2 === 0) pluck(up[(k / 2) % up.length], t, v, Math.random() < .12); }
+  else if (s.zheng === 'arp') { const seq = [0, 1, 2, 3, 2, 1]; pluck(up[seq[k % 6] % up.length] + (k % 12 >= 6 ? 12 : 0), t, v * (k % 2 ? .7 : 1)); }
+  else if (s.zheng === 'rise') { if (k % 8 < 5) { const sc = pentaIn(62, 86); pluck(sc[((k % 8) * 2 + (k >> 3) % 3) % sc.length], t, v * .8); } }
+  else if (s.zheng === 'walk' && Math.random() < .7) { const sc = pentaIn(65, 86); SC.walk = clamp(SC.walk + (Math.random() < .5 ? -1 : 1) * (Math.random() < .7 ? 1 : 2), 0, sc.length - 1); pluck(sc[SC.walk], t, v); }
+}
+function fluteStep(s, k, t, sd) {
+  const beat = k / 2;
+  if (beat < SC.melNext) return;
+  if (s.flute === 'walk') {
+    const sc = pentaIn(62, 81), len = [1, 1, 2, .5, 1.5][Math.floor(Math.random() * 5)];
+    SC.walk = clamp(SC.walk + (Math.random() < .5 ? -1 : 1), 0, sc.length - 1);
+    fluteNote(sc[SC.walk], t, len * sd * 2, s.fv);
+    SC.melNext = beat + len + (Math.random() < .25 ? 2 : 0);
+    return;
+  }
+  const mel = s.flute === 'lament' ? LAMENT : THEME, [n, len] = mel[SC.melI % mel.length];
+  fluteNote(n, t, len * sd * 2, s.fv);
+  SC.melNext += len; SC.melI++;
+  if (SC.melI % mel.length === 0) { SC.melNext += mel === LAMENT ? 32 : 16; fluteOff(t + len * sd * 2); }
+}
+
+/* ---- 乐器 ---- */
+function strings(notes, t, dur, vel) {
+  const ac = AU.ac, out = ac.createGain(), v = vel * .045;
+  out.gain.setValueAtTime(0, t); out.gain.linearRampToValueAtTime(v, t + Math.min(1.4, dur * .4));
+  out.gain.setValueAtTime(v, t + dur); out.gain.linearRampToValueAtTime(0, t + dur + 1.6);
+  out.connect(SC.strIn); track(out, t + dur + 1.6, t);
+  for (const n of notes) for (const dt of [-8, 7]) {
+    const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = mtof(n); o.detune.value = dt;
+    SC.vibG.connect(o.detune); o.connect(out); o.start(t); o.stop(t + dur + 1.7);
+  }
+}
+function choir(notes, t, dur, vel) {
+  const ac = AU.ac, out = ac.createGain(), v = vel * .05;
+  out.gain.setValueAtTime(0, t); out.gain.linearRampToValueAtTime(v, t + Math.min(1.8, dur * .5));
+  out.gain.setValueAtTime(v, t + dur); out.gain.linearRampToValueAtTime(0, t + dur + 2);
+  out.connect(SC.choirIn); track(out, t + dur + 2, t);
+  for (const n of notes) for (const dt of [-10, 0, 9]) {
+    const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = mtof(n); o.detune.value = dt;
+    SC.vibG.connect(o.detune); o.connect(out); o.start(t); o.stop(t + dur + 2.1);
+  }
+}
+function brass(notes, t, dur, vel) {
+  const ac = AU.ac;
+  for (const n of notes) {
+    const f = mtof(n), o1 = ac.createOscillator(), o2 = ac.createOscillator();
+    o1.type = 'sawtooth'; o2.type = 'square'; o1.frequency.value = f; o2.frequency.value = f; o2.detune.value = -6;
+    const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 1.2;
+    lp.frequency.setValueAtTime(180, t); lp.frequency.linearRampToValueAtTime(1500, t + .9); lp.frequency.linearRampToValueAtTime(700, t + dur);
+    const g = ac.createGain(), v = vel * .035, g2 = ac.createGain(); g2.gain.value = .45;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + .7); g.gain.setValueAtTime(v, t + Math.max(.8, dur - .3)); g.gain.linearRampToValueAtTime(0, t + dur + 1.2);
+    o1.connect(lp); o2.connect(g2); g2.connect(lp); lp.connect(g); g.connect(AU.mIn); track(g, t + dur + 1.2, t);
+    o1.start(t); o2.start(t); o1.stop(t + dur + 1.3); o2.stop(t + dur + 1.3);
+  }
+}
+function bass(n, t, dur, vel) {
+  const ac = AU.ac, f = mtof(n), o = ac.createOscillator(), s = ac.createOscillator();
+  o.type = 'sawtooth'; o.frequency.value = f; s.frequency.value = f;
+  const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 260;
+  const g = ac.createGain(), v = vel * .09, sg = ac.createGain(); sg.gain.value = 1.4;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + .9); g.gain.setValueAtTime(v, t + dur); g.gain.linearRampToValueAtTime(0, t + dur + 1.5);
+  o.connect(lp); s.connect(sg); sg.connect(lp); lp.connect(g); g.connect(AU.mIn); track(g, t + dur + 1.5, t);
+  o.start(t); s.start(t); o.stop(t + dur + 1.6); s.stop(t + dur + 1.6);
+}
+function spic(n, t, vel) {
+  const ac = AU.ac, f = mtof(n), o = ac.createOscillator(), o2 = ac.createOscillator();
+  o.type = o2.type = 'sawtooth'; o.frequency.value = o2.frequency.value = f; o2.detune.value = 9;
+  const lp = ac.createBiquadFilter(); lp.type = 'lowpass';
+  lp.frequency.setValueAtTime(3000, t); lp.frequency.exponentialRampToValueAtTime(420, t + .2);
+  const g = ac.createGain(); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vel * .06, t + .008); g.gain.exponentialRampToValueAtTime(.0001, t + .28);
+  o.connect(lp); o2.connect(lp); lp.connect(g); g.connect(AU.mIn);
+  o.start(t); o2.start(t); o.stop(t + .3); o2.stop(t + .3);
+}
+function fluteInit() {
+  const ac = AU.ac, F = SC.fl = {};
+  F.o = ac.createOscillator(); F.o.type = 'triangle'; F.o2 = ac.createOscillator();
+  F.g = ac.createGain(); F.g.gain.value = 0;
+  const g2 = ac.createGain(); g2.gain.value = .25;
+  F.o.connect(F.g); F.o2.connect(g2); g2.connect(F.g);
+  F.n = ac.createBufferSource(); F.n.buffer = AU.pink; F.n.loop = true;
+  const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1500; bp.Q.value = .9;
+  F.ng = ac.createGain(); F.ng.gain.value = 0; F.n.connect(bp); bp.connect(F.ng);
+  F.vib = ac.createOscillator(); F.vib.frequency.value = 5.2; F.vibG = ac.createGain(); F.vibG.gain.value = 0;
+  F.vib.connect(F.vibG); F.vibG.connect(F.o.detune); F.vibG.connect(F.o2.detune);
+  const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600;
+  const out = ac.createGain(); out.gain.value = .5;
+  F.g.connect(lp); F.ng.connect(lp); lp.connect(out); out.connect(AU.mIn);
+  F.o.frequency.value = 440; F.o2.frequency.value = 880;
+  F.o.start(); F.o2.start(); F.n.start(); F.vib.start();
+}
+function fluteNote(n, t, dur, vel) {
+  const F = SC.fl; if (!F) return;
+  const f = mtof(n), v = vel * .22;
+  F.o.frequency.setTargetAtTime(f, t, .03); F.o2.frequency.setTargetAtTime(f * 2, t, .03);
+  F.g.gain.setTargetAtTime(v, t, .05); F.g.gain.setTargetAtTime(v * .8, t + .2, .4);
+  if (dur > .3) F.g.gain.setTargetAtTime(v * .45, t + dur - .09, .03);
+  F.ng.gain.setTargetAtTime(v * .5, t, .015); F.ng.gain.setTargetAtTime(v * .16, t + .1, .08);
+  F.vibG.gain.setTargetAtTime(0, t, .02); F.vibG.gain.setTargetAtTime(14, t + .35, .4);
+}
+function fluteOff(t) { const F = SC.fl; if (!F) return; F.g.gain.setTargetAtTime(0, t, .5); F.ng.gain.setTargetAtTime(0, t, .3); F.vibG.gain.setTargetAtTime(0, t, .3); }
+function braam(t, vel) {
+  const ac = AU.ac, sh = ac.createWaveShaper(); sh.curve = distCurve(2.5);
+  const lp = ac.createBiquadFilter(); lp.type = 'lowpass';
+  lp.frequency.setValueAtTime(90, t); lp.frequency.exponentialRampToValueAtTime(1400, t + .35); lp.frequency.exponentialRampToValueAtTime(220, t + 3.5);
+  const g = ac.createGain(); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vel * .12, t + .06);
+  g.gain.exponentialRampToValueAtTime(vel * .05, t + .8); g.gain.exponentialRampToValueAtTime(.0001, t + 4.2);
+  sh.connect(lp); lp.connect(g); g.connect(AU.sIn);
+  for (const n of [26, 38, 45, 50]) for (const dt of [-7, 6]) {
+    const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = mtof(n); o.detune.value = dt;
+    o.connect(sh); o.start(t); o.stop(t + 4.3);
+  }
+  const sub = ac.createOscillator(); sub.frequency.setValueAtTime(55, t); sub.frequency.exponentialRampToValueAtTime(36, t + 1.2);
+  const sg = ac.createGain(); sg.gain.setValueAtTime(.0001, t); sg.gain.exponentialRampToValueAtTime(vel * .45, t + .03); sg.gain.exponentialRampToValueAtTime(.0001, t + 3);
+  sub.connect(sg); sg.connect(AU.sIn); sub.start(t); sub.stop(t + 3.1);
+}
+function whisper(t, vel) {
+  const ac = AU.ac, src = ac.createBufferSource(); src.buffer = AU.pink; src.loop = true;
+  const out = ac.createGain(); out.gain.setValueAtTime(0, t); out.gain.linearRampToValueAtTime(vel * .06, t + 1.5); out.gain.linearRampToValueAtTime(0, t + 4);
+  for (const [f, q] of [[500, 6], [900, 7], [2400, 8]]) {
+    const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = q;
+    bp.frequency.setValueAtTime(f * (.8 + Math.random() * .4), t); bp.frequency.linearRampToValueAtTime(f * (.8 + Math.random() * .4), t + 4);
+    src.connect(bp); bp.connect(out);
+  }
+  panNode(out, .8).connect(AU.mIn); src.start(t, Math.random() * 2); src.stop(t + 4.1);
+}
+/* 古筝一样的拨弦: Karplus-Strong 物理模型 */
+function ksBuf(midi) {
+  const hit = AU.ks[midi]; if (hit) return hit;
+  const ac = AU.ac, sr = ac.sampleRate, f = mtof(midi);
+  const N = Math.max(4, Math.round(sr / f)), len = Math.floor(sr * 3.2);
+  const buf = ac.createBuffer(1, len, sr), d = buf.getChannelData(0), ring = new Float32Array(N);
+  const bright = .5 + .35 * clamp((midi - 48) / 40);
+  let lp = 0;
+  for (let i = 0; i < N; i++) { lp += bright * ((Math.random() * 2 - 1) - lp); ring[i] = lp; }
+  let mean = 0; for (let i = 0; i < N; i++) mean += ring[i]; mean /= N;
+  for (let i = 0; i < N; i++) ring[i] -= mean;
+  const fr = sr / (N + .5), T60 = lerp(3.4, 1.8, clamp((midi - 45) / 50));
+  const dec = Math.min(.99985, Math.pow(.001, 1 / (T60 * fr)) / Math.max(.5, Math.cos(PI * fr / sr)));
+  let p = 0, pk = 0;
+  for (let i = 0; i < len; i++) {
+    const a = ring[p], nx = p + 1 === N ? 0 : p + 1;
+    d[i] = a; ring[p] = dec * .5 * (a + ring[nx]); p = nx;
+    if (i < N * 8 && Math.abs(a) > pk) pk = Math.abs(a);
+  }
+  const gn = pk > 0 ? .7 / pk : 1, fade = Math.floor(sr * .35);
+  for (let i = 0; i < len; i++) { d[i] *= gn; if (i > len - fade) d[i] *= (len - i) / fade; }
+  return AU.ks[midi] = {buf, rate:f / fr};
+}
+function panNode(g, spread) {
+  const ac = AU.ac; if (!ac.createStereoPanner) return g;
+  const p = ac.createStereoPanner(); p.pan.value = (Math.random() * 2 - 1) * spread; g.connect(p); return p;
+}
+function pluck(midi, t, vel, bend, dest) {
+  const ac = AU.ac; if (!ac) return;
+  const k = ksBuf(midi), s = ac.createBufferSource(); s.buffer = k.buf; s.playbackRate.setValueAtTime(k.rate, t);
+  if (bend) { s.playbackRate.setValueAtTime(k.rate, t + .3); s.playbackRate.linearRampToValueAtTime(k.rate * 1.1225, t + .52); }
+  const g = ac.createGain(); g.gain.setValueAtTime(vel, t); g.gain.setTargetAtTime(vel * .5, t + .1, 1.2);
+  s.connect(g); panNode(g, .5).connect(dest || AU.mIn); s.start(t); s.stop(t + 3.3);
+}
+function bell(freq, t, vel, dest, dur = 1) {
+  const ac = AU.ac; if (!ac) return;
+  const out = ac.createGain(); out.gain.value = vel; panNode(out, .6).connect(dest || AU.sIn);
+  for (const [r, a, d] of [[1, 1, 2.6], [2, .42, 1.7], [2.76, .3, 1.2], [5.4, .13, .6], [8.93, .06, .35]]) {
+    const o = ac.createOscillator(); o.frequency.value = freq * r;
+    const gn = ac.createGain(); gn.gain.setValueAtTime(0, t); gn.gain.linearRampToValueAtTime(a, t + .004); gn.gain.exponentialRampToValueAtTime(.0001, t + d * dur);
+    o.connect(gn); gn.connect(out); o.start(t); o.stop(t + d * dur + .05);
+  }
+}
+function drum(t, vel, f0 = 95, f1 = 42, dest, len = 1.1) {
+  const ac = AU.ac; if (!ac) return;
+  const out = dest || AU.mIn, o = ac.createOscillator();
+  o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + .3);
+  const g = ac.createGain(); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(.0002, vel), t + .008); g.gain.exponentialRampToValueAtTime(.0001, t + len);
+  o.connect(g); g.connect(out); o.start(t); o.stop(t + len + .05);
+  noiseHit(t, vel * .45, 'lowpass', 800, .16, .7, out);
+}
+function noiseHit(t, vel, type, freq, dur, Q = 1, dest, buf) {
+  const ac = AU.ac; if (!ac) return;
+  const b = buf || AU.noise, s = ac.createBufferSource(); s.buffer = b;
+  const f = ac.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = Q;
+  const g = ac.createGain(); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(.0002, vel), t + .005); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  s.connect(f); f.connect(g); g.connect(dest || AU.sIn); s.start(t, Math.random() * Math.max(0, b.duration - dur - .1)); s.stop(t + dur + .05);
+}
+function swell(t, dur, vel, type, f0, f1, Q = .8, dest, buf, pan0, pan1) {
+  const ac = AU.ac; if (!ac) return null;
+  const s = ac.createBufferSource(); s.buffer = buf || AU.pink; s.loop = true;
+  const f = ac.createBiquadFilter(); f.type = type; f.Q.value = Q;
+  f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  const g = ac.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vel, t + dur * .55); g.gain.linearRampToValueAtTime(0, t + dur);
+  s.connect(f); f.connect(g);
+  let node = g;
+  if (pan0 != null && ac.createStereoPanner) { const p = ac.createStereoPanner(); p.pan.setValueAtTime(pan0, t); p.pan.linearRampToValueAtTime(pan1, t + dur); g.connect(p); node = p; }
+  node.connect(dest || AU.sIn); s.start(t, Math.random()); s.stop(t + dur + .05);
+  return {s, g};
+}
+function padS(t, notes, dur, vel, cut = 1200) {
+  const ac = AU.ac, f = ac.createBiquadFilter(); f.type = 'lowpass';
+  f.frequency.setValueAtTime(cut * .4, t); f.frequency.linearRampToValueAtTime(cut, t + dur * .4); f.frequency.linearRampToValueAtTime(cut * .5, t + dur);
+  const g = ac.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vel, t + dur * .35); g.gain.linearRampToValueAtTime(0, t + dur);
+  f.connect(g); g.connect(AU.sIn);
+  for (const n of notes) for (const dt of [-6, 6]) {
+    const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = mtof(n); o.detune.value = dt;
+    const og = ac.createGain(); og.gain.value = 1 / (notes.length * 2); o.connect(og); og.connect(f); o.start(t); o.stop(t + dur + .05);
+  }
+}
+function gloop(t) {
+  const ac = AU.ac, o = ac.createOscillator(); o.frequency.setValueAtTime(90, t);
+  o.frequency.exponentialRampToValueAtTime(260, t + .12); o.frequency.exponentialRampToValueAtTime(70, t + .3);
+  const g = ac.createGain(); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.2, t + .03); g.gain.exponentialRampToValueAtTime(.0001, t + .34);
+  o.connect(g); g.connect(AU.sIn); o.start(t); o.stop(t + .4); noiseHit(t, .06, 'lowpass', 300, .25, 2);
+}
+function blip(t) {
+  const ac = AU.ac, o = ac.createOscillator(), f = 700 + Math.random() * 900;
+  o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 1.8, t + .06);
+  const g = ac.createGain(); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.045, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + .08);
+  o.connect(g); g.connect(AU.sIn); o.start(t); o.stop(t + .1);
+}
+const aNow = () => AU.ac.currentTime + .02;
+const SFX = {
+  sting() { const t = aNow(); swell(t, 1.8, .07, 'bandpass', 300, 2600, .9); drum(t + .12, .32, 58, 28, AU.sIn, 3); bell(mtof(86), t + .2, .025); },
+  ghost(i) { const t = aNow(); bell(mtof([74, 81, 62, 69][i] || 74), t, .045, AU.sIn, .8); noiseHit(t + .3, .04, 'bandpass', 900, .6, .6); },
+  formEgg() { const t = aNow(); swell(t, 3.2, .09, 'lowpass', 200, 900, .7, AU.sIn, AU.brown); padS(t + .6, [50, 57, 62], 4.5, .05, 900); },
+  nameGlow() { const t = aNow(); bell(mtof(81), t, .06); bell(mtof(86), t + .18, .045); },
+  count() { const t = aNow(); for (let i = 0; i < 16; i++) noiseHit(t + i * .14, .05 + i * .004, 'highpass', 5000, .03, 1); bell(mtof(86), t + 2.3, .05); },
+  wake() { const t = aNow(); pluck(69, t, .28, false, AU.sIn); bell(mtof(76), t + .05, .07); drum(t, .25, 70, 40, AU.sIn); },
+  goo() { const t = aNow(); for (let i = 0; i < 3; i++) gloop(t + i * .38); },
+  bump() { const t = aNow(); drum(t, .55, 85, 38, AU.sIn, .7); noiseHit(t, .22, 'lowpass', 500, .2, .7); },
+  grr() { const t = aNow(); swell(t, 1.8, .14, 'lowpass', 120, 260, 1, AU.sIn, AU.brown); for (let i = 0; i < 6; i++) drum(t + i * .14, .12 + i * .03, 90, 50, AU.sIn, .4); },
+  shing() { const t = aNow(); bell(1760, t, .055, AU.sIn, .7); bell(2637, t + .02, .035, AU.sIn, .6); swell(t, .6, .06, 'highpass', 3000, 9000, .7); },
+  riser() { const t = aNow(); AU.riser = swell(t, 2.6, .15, 'bandpass', 220, 3400, 1.6, AU.sIn, AU.noise); },
+  impact() {
+    const t = aNow();
+    if (AU.riser) { try { AU.riser.g.gain.cancelScheduledValues(t); AU.riser.g.gain.setTargetAtTime(0, t, .02); } catch (e) {} AU.riser = null; }
+    noiseHit(t, .55, 'bandpass', 2400, .1, 1.1); noiseHit(t, .4, 'highpass', 4500, .06, .7);
+    for (let i = 0; i < 10; i++) noiseHit(t + .02 + Math.random() * .5, .08 + Math.random() * .16, 'bandpass', 1400 + Math.random() * 4000, .02 + Math.random() * .04, 3);
+    braam(t, 1); drum(t, .6, 72, 24, AU.sIn, 2.2);
+    swell(t + .15, 3, .06, 'highpass', 4000, 7000, .7);
+  },
+  crackle() { const t = aNow(); for (let i = 0; i < 16; i++) noiseHit(t + Math.random() * 2.2, .05 + Math.random() * .12, 'bandpass', 1800 + Math.random() * 3500, .015 + Math.random() * .03, 4); padS(t + .2, [62, 69, 74, 77], 3.5, .045, 2200); },
+  drum() { drum(aNow(), .7, 80, 34, AU.sIn, 1.6); },
+  lab(i) { bell(mtof([74, 77, 81, 86][i] || 81), aNow(), .05); },
+  chord() { const t = aNow(); braam(t, .55); padS(t, [41, 53, 60, 65, 69], 5, .07, 1600); },
+  thud() { const t = aNow(); drum(t, .6, 60, 28, AU.sIn, 2.4); noiseHit(t, .3, 'lowpass', 220, 1.6, .7, AU.sIn, AU.brown); swell(t, 2.5, .08, 'lowpass', 300, 120, .7, AU.sIn, AU.brown); },
+  chimes() { const t = aNow(); [93, 91, 89, 86, 84, 81, 79].forEach((n, i) => bell(mtof(n), t + i * .16, .04)); },
+  sunUp() { const t = aNow(); padS(t, [53, 60, 65, 69, 72], 4, .07, 1800); bell(mtof(81), t + .4, .05); bell(mtof(88), t + 1.1, .035); },
+  moonUp() { const t = aNow(); bell(mtof(89), t + .2, .045); bell(mtof(96), t + .8, .03); padS(t, [57, 62, 69], 3.6, .035, 1400); },
+  twinkle() { const t = aNow(), ns = [86, 88, 89, 93, 96, 98]; for (let i = 0; i < 14; i++) bell(mtof(ns[Math.floor(Math.random() * ns.length)]), t + i * .22 + Math.random() * .1, .022 + Math.random() * .018, AU.sIn, .6); },
+  windS() { const t = aNow(); swell(t, 4.5, .17, 'bandpass', 300, 900, .9, AU.sIn, AU.pink, -.8, .8); swell(t + 1.2, 3.5, .09, 'bandpass', 700, 1600, 1.2, AU.sIn, AU.pink, .6, -.6); },
+  water() { const t = aNow(); for (let i = 0; i < 26; i++) blip(t + Math.random() * 3.2); swell(t, 3.6, .03, 'highpass', 3000, 5000, .6); },
+  fieldS() { const t = aNow(); [65, 69, 72, 74, 77, 81].forEach((n, i) => pluck(n, t + i * .21, .14, false, AU.sIn)); },
+  knocks() { const t = aNow(); for (let i = 0; i < 6; i++) { const tt = t + i * .3 + Math.random() * .1; drum(tt, .2, 240 + Math.random() * 90, 150, AU.sIn, .18); noiseHit(tt, .1, 'bandpass', 1500, .05, 2); } },
+  rumble() { const t = aNow(); swell(t, 5, .32, 'lowpass', 70, 180, .8, AU.sIn, AU.brown); padS(t + 1.4, [38, 45, 50, 57, 62], 5, .07, 1000); drum(t + 1.2, .45, 55, 26, AU.sIn, 2.4); },
+  glintM() { bell(mtof(86), aNow(), .04); },
+  glintW() { const t = aNow(); for (let i = 0; i < 8; i++) blip(t + Math.random() * .9); },
+  gust() { swell(aNow(), 2.2, .11, 'bandpass', 500, 1200, .9, AU.sIn, AU.pink, -.7, .7); },
+  dust() { const t = aNow(); swell(t, 3, .12, 'lowpass', 400, 150, .7, AU.sIn, AU.brown); },
+  finale() { const t = aNow(); padS(t, [38, 50, 57, 62, 66], 7, .06, 1200); bell(mtof(74), t + .5, .045); bell(mtof(81), t + 1.3, .035); }
+};
+function sfx(name, arg) {
+  if (!AU.ac || AU.ac.state !== 'running') return;
+  const f = SFX[name];
+  if (f) try { f(arg); } catch (e) { console.warn(e); }
+}
+/* 配音时压低配乐: 按配乐此刻的响度决定压多少, 让旁白始终比配乐高出一截 (响的段落压得更多) */
+const DUCK_TGT = -34, DUCK_MIN = .15, DUCK_MAX = .5;
+function duck(on) {
+  if (!AU.ac) return;
+  AU.ducking = on;
+  if (!on) { AU.duckG = 1; AU.mDuck.gain.setTargetAtTime(1, AU.ac.currentTime, .5); return; }
+  duckTick(true);
+}
+function duckTick(now) {
+  if (!AU.mMeter) { if (now) AU.mDuck.gain.setTargetAtTime(DUCK_MAX, AU.ac.currentTime, .12); return; }
+  if (AU.ac.state !== 'running') return;
+  const d = AU.mBuf; AU.mMeter.getFloatTimeDomainData(d);
+  let s = 0; for (let i = 0; i < d.length; i++) s += d[i] * d[i];
+  const p = s / d.length;
+  AU.mPow = AU.mPow == null ? p : AU.mPow + (p - AU.mPow) * (p > AU.mPow ? .35 : .12);   /* 变响时跟得快, 变轻时慢一点 */
+  if (!AU.ducking) return;
+  const g = clamp(Math.pow(10, (DUCK_TGT - 10 * Math.log10(AU.mPow + 1e-10)) / 20), DUCK_MIN, DUCK_MAX);
+  if (now || Math.abs(g - AU.duckG) > .015) { AU.duckG = g; AU.mDuck.gain.setTargetAtTime(g, AU.ac.currentTime, now ? .12 : .25); }
+}
+function setMusic(on) { AU.musicOn = on; if (AU.ac) AU.mMute.gain.setTargetAtTime(on ? 1 : 0, AU.ac.currentTime, .25); }
+
+/* ================= 旁白：浏览器语音合成, 默认低沉的男声 ================= */
+const TTS_OK = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+const NARR = { mode:'zh', gen:'m', depth:35, voices:[], pick:{zh:'', en:''}, tok:0, done:true, silent:true, text:'', lang:'zh',
+  est:1, estBase:1, callT:0, startT:-1, bound:0, boundOn:false, boundSeen:false, cal:{zh:1, en:1}, keep:[], fails:0 };
+const MALE_RE = /云健|雲健|云扬|雲揚|云希|雲希|云夏|雲夏|云野|雲野|云泽|雲澤|云枫|雲楓|云皓|雲皓|云哲|雲哲|yunjian|yunyang|yunye|yunze|yunfeng|yunhao|yunxi|yunxia|yunjhe|li-?mu|kangkang|\bmale\b|男|\b(david|mark|guy|ryan|thomas|christopher|eric|roger|steffan|andrew|brian|daniel|arthur|alex|fred|tom|aaron|oliver|george|william|liam|james|connor|mitchell|davis|tony|jason|brandon|elliot|ralph|reed|rocko|grandpa|eddy)\b/i;
+const FEMALE_RE = /晓|曉|慧慧|瑶瑶|婷婷|美嘉|google\s*(?:普通话|國語|国语|粤語|粵語)|xiaoxiao|xiaoyi|xiaohan|xiaomo|xiaoxuan|xiaorui|xiaoshuang|xiaoyou|xiaochen|xiaoqiu|xiaozhen|xiaoyan|xiaobei|xiaoni|huihui|yaoyao|tingting|meijia|sinji|yu-?shu|lili|hsiaochen|hsiaoyu|female|女|\b(zira|jenny|aria|ana|libby|sonia|molly|natasha|clara|emma|ava|michelle|samantha|karen|moira|serena|susan|hazel|kate|fiona|victoria|allison|joanna|salli|kimberly|ivy|amy|olivia|maisie|flo|grandma|sandy|shelley)\b/i;
+const CHILD_RE = /云夏|雲夏|yunxia|xiaoyou|\b(child|kid|junior)\b/i;
+/* Windows 自带的 Kangkang 在 Chrome/Edge 里被抬高到约 193 Hz, 听起来像女声; 把音调设到最低 (SAPI -10) 后约 146 Hz, 回到男声 */
+const sapiLow = v => /kangkang/i.test((v && v.name) || '') && v.localService !== false;
+const voicePitch = v => sapiLow(v) ? clamp(narrPitch() - .86, 0, 2) : narrPitch();
+function voiceGender(v) { const n = (v.name || '') + ' ' + (v.voiceURI || ''); return FEMALE_RE.test(n) ? 'f' : MALE_RE.test(n) ? 'm' : '?'; }
+const isCantonese = v => /^(zh-hk|zh-mo|yue)/i.test((v.lang || '').replace('_', '-')) || /粤|粵|cantonese/i.test(v.name || '');
+function voiceList(lang) {
+  const list = NARR.voices.filter(v => {
+    const l = (v.lang || '').toLowerCase().replace('_', '-');
+    return lang === 'zh' ? (l.startsWith('zh') || l.startsWith('cmn')) && !isCantonese(v) : l.startsWith('en');
+  });
+  return lang === 'zh' && REC_VOICE ? [REC_VOICE].concat(list) : list;
+}
+function scoreVoice(v, lang) {
+  const n = (v.name + ' ' + (v.voiceURI || '')).toLowerCase(), l = (v.lang || '').toLowerCase().replace('_', '-'), gd = voiceGender(v);
+  let s = NARR.gen === 'm' ? (gd === 'm' ? 60 : gd === 'f' ? -30 : -10) : (gd === 'f' ? 40 : gd === 'm' ? -30 : 0);
+  if (CHILD_RE.test(n)) s -= 45;                            /* 不用童声讲旁白 */
+  if (lang === 'zh') {
+    if (/cn|hans|cmn/.test(l)) s += 50; else if (/tw|hant/.test(l)) s += 18; else s += 6;
+    if (/^zh-cn-./.test(l)) s -= 30;                        /* 东北话、陕西话等口音往后排 */
+    if (/云健|雲健|yunjian/.test(n)) s += 36; else if (/云泽|雲澤|云野|雲野|yunze|yunye/.test(n)) s += 32;   /* 男声: 越低沉越靠前 */
+    else if (/云扬|雲揚|yunyang/.test(n)) s += 28; else if (/云枫|云皓|yunfeng|yunhao/.test(n)) s += 22;
+    else if (/li-?mu/.test(n)) s += 18; else if (/kangkang/.test(n)) s += 14; else if (/云希|雲希|yunxi/.test(n)) s += 12;
+    if (/晓晓|曉曉|xiaoxiao/.test(n)) s += 30; else if (/晓伊|曉伊|xiaoyi|xiaohan|xiaomo|xiaoxuan|xiaorui/.test(n)) s += 22;
+    if (/natural|neural|online|premium|enhanced/.test(n)) s += 25;
+    if (/google/.test(n)) s += 14;
+    if (/婷婷|tingting|yu-?shu|meijia/.test(n)) s += 10;
+  } else {
+    if (/en-gb/.test(l)) s += 26; else if (/en-(us|au|nz|ca|ie)/.test(l)) s += 18;
+    if (/ryan|thomas/.test(n)) s += 30; else if (/guy|christopher|eric|andrew|brian|davis|roger/.test(n)) s += 24; else if (/daniel|arthur|oliver/.test(n)) s += 20;
+    if (/natural|neural|online|premium|enhanced/.test(n)) s += 28;
+    if (/google/.test(n)) s += 12;
+    if (/sonia|libby|jenny|aria|ava|emma|molly/.test(n)) s += 14;
+  }
+  if (v.localService === false) s += 2;
+  return s;
+}
+const DEPTH_DEF = {m:35, f:10};
+const narrPitch = () => clamp(1.02 - NARR.depth * .0045, .5, 1.1);     /* 低沉程度 → 音调 */
+function maleNote(lang) {                                     /* 找不到真正的男声时的提示 */
+  if (lang === 'en') { showNote('No male English voice found — using the closest voice with a lower pitch.'); return; }
+  showNote('这台设备没有中文男声，先用现有的声音并调低音调。');
+}
+function kangNote() {                                        /* 用的是 Windows 自带的 Kangkang */
+  showNote('现在用的男声是 Windows 自带的 Kangkang，已经把音调调到最低。' + (REC_VOICE ? '选「云健（录音）」会好听很多。' : ''));
+}
+function recNote() {
+  showNote(/Edg\//.test(navigator.userAgent) ? '现在用的是事先录好的“云健”旁白。' : '这个浏览器没有好听的中文男声，改用事先录好的“云健”旁白。');
+}
+
+/* ================= 录好的“云健”旁白: 给没有好听男声的浏览器 (比如 Chrome) ================= */
+const REC = window.STORY_REC || null;
+const REC_VOICE = REC ? {name:'Microsoft 云健（录音）', voiceURI:'__rec__', lang:'zh-CN', localService:true, rec:true} : null;
+const recLine = text => (REC && REC.lines[text]) || null;
+const REC_BUF = new Map();
+function recBuffer(text) {                                    /* 解码一句 (有缓存) */
+  if (!AU.ac || !recLine(text)) return Promise.resolve(null);
+  if (!REC_BUF.has(text)) {
+    const bin = atob(recLine(text).a), u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    REC_BUF.set(text, new Promise(res => { try { AU.ac.decodeAudioData(u8.buffer, res, () => res(null)); } catch (e) { res(null); } }));
+  }
+  return REC_BUF.get(text);
+}
+function recPrefetch(i) {                                     /* 提前解码接下来的几句 */
+  if (!REC || !AU.ac || NARR.mode === 'off' || narrLang() !== 'zh' || !(bestVoice('zh') || {}).rec) return;
+  for (let j = i, n = 0; j < CUES.length && n < 3; j++) if (CUES[j].zh && !CUES[j].card) { recBuffer(CUES[j].zh); n++; }
+}
+function playRec(cue, tok) {
+  const line = recLine(cue.zh);
+  NARR.recMode = !!line; NARR.silent = !line; NARR.recBounds = line ? line.b : []; NARR.recT0 = -1;
+  if (!line) { NARR.startT = T; NARR.est = NARR.estBase; return; }
+  recBuffer(cue.zh).then(buf => {
+    if (tok !== NARR.tok || NARR.done) return;
+    if (!buf) { NARR.recMode = false; NARR.silent = true; NARR.startT = T; NARR.est = NARR.estBase; return; }
+    const src = AU.ac.createBufferSource(); src.buffer = buf; src.connect(AU.vIn);
+    src.onended = () => { if (tok === NARR.tok) narrFinish(true); };
+    NARR.src = src; NARR.est = buf.duration; NARR.recT0 = AU.ac.currentTime + .03; NARR.startT = T;
+    src.start(NARR.recT0); duck(true);
+  });
+}
+function recPreview(text) {                                   /* 试听录音 */
+  if (!audioInit()) return;
+  if (AU.ac.state === 'suspended') AU.ac.resume();
+  const tok = ++NARR.tok;
+  recBuffer(text).then(buf => {
+    if (!buf || tok !== NARR.tok) return;
+    const s = AU.ac.createBufferSource(); s.buffer = buf; s.connect(AU.vIn); s.start(); NARR.src = s;
+  });
+}
+function bestVoice(lang) {
+  const list = voiceList(lang); if (!list.length) return null;
+  const want = NARR.pick[lang];
+  if (want) { const f = list.find(v => v.voiceURI === want || v.name === want); if (f) return f; }
+  return list.slice().sort((a, b) => scoreVoice(b, lang) - scoreVoice(a, lang))[0];
+}
+function estBase(text, lang) {
+  if (lang === 'en') {
+    const w = text.split(/\s+/).filter(Boolean).length, p = (text.match(/[,.;:!?—]/g) || []).length;
+    return .45 + w * .38 + p * .2;
+  }
+  const c = (text.match(/[一-鿿]/g) || []).length, p = (text.match(/[，。；：！？、—]/g) || []).length;
+  return .4 + c * .27 + p * .22;
+}
+const narrLang = () => NARR.mode === 'en' ? 'en' : 'zh';
+
+function say(cue) {
+  autoGender();
+  const lang = narrLang(), text = lang === 'en' ? cue.en : cue.zh;
+  NARR.lang = lang; NARR.text = text; NARR.estBase = estBase(text, lang); NARR.est = NARR.estBase * NARR.cal[lang];
+  NARR.done = false; NARR.bound = 0; NARR.boundOn = false; NARR.callT = T; NARR.startT = -1;
+  const tok = ++NARR.tok;
+  NARR.recMode = false;
+  const v = NARR.mode !== 'off' ? bestVoice(lang) : null;
+  if (v && v.rec) { playRec(cue, tok); return; }                      /* 用录好的旁白 */
+  if (!v || !TTS_OK) { NARR.silent = true; NARR.startT = T; NARR.est = NARR.estBase; return; }
+  NARR.silent = false;
+  const u = new SpeechSynthesisUtterance(text.replace(/[—–]/g, ' '));
+  u.voice = v; u.lang = v.lang || (lang === 'en' ? 'en-GB' : 'zh-CN');
+  u.rate = lang === 'en' ? .86 : .84;                               /* 纪录片的语速: 稳一点 */
+  u.pitch = voicePitch(v);                                          /* 低沉一点 */
+  u.volume = 1;
+  u.onstart = () => { if (tok !== NARR.tok) return; NARR.startT = T; duck(true); };
+  u.onboundary = e => {
+    if (tok !== NARR.tok || (e.name && e.name !== 'word')) return;
+    NARR.boundOn = NARR.boundSeen = true;
+    NARR.bound = Math.max(NARR.bound, e.charIndex + (e.charLength || 1));
+    karaoke(NARR.bound);
+  };
+  u.onend = () => { if (tok === NARR.tok) narrFinish(true); };
+  u.onerror = e => {
+    if (tok !== NARR.tok) return;
+    const er = e && e.error;
+    if (er !== 'interrupted' && er !== 'canceled' && lang === 'zh' && recLine(cue.zh)) { playRec(cue, ++NARR.tok); return; }   /* 在线语音出错 (比如断网) 就改用录音 */
+    narrFinish(false, er);
+  };
+  NARR.keep.push(u); if (NARR.keep.length > 6) NARR.keep.shift();
+  try { speechSynthesis.speak(u); if (speechSynthesis.paused) speechSynthesis.resume(); }
+  catch (e) { NARR.silent = true; NARR.startT = T; NARR.est = NARR.estBase; }
+}
+function narrFinish(ok, err) {
+  if (NARR.done) return;
+  NARR.done = true; NARR.src = null; duck(false); karaoke(1e9);
+  if (NARR.silent) return;
+  if (ok && NARR.startT >= 0 && !NARR.recMode) {
+    const r = (T - NARR.startT) / NARR.estBase;
+    if (r > .3 && r < 3) NARR.cal[NARR.lang] = clamp(NARR.cal[NARR.lang] * .6 + r * .4, .55, 2);
+    NARR.fails = 0;
+  } else if (!ok && err !== 'interrupted' && err !== 'canceled') {
+    if (++NARR.fails >= 3) { NARR.mode = 'off'; showNote('配音没有出声，先只放字幕和配乐。Narration failed — showing subtitles only.'); }
+  }
+}
+function narrTick() {
+  if (NARR.done) return;
+  if (NARR.silent) { if (T - NARR.startT >= NARR.est) narrFinish(true); return; }
+  if (NARR.recMode) {                                          /* 录音: 按录下的时间点让字幕逐字亮起 */
+    if (NARR.recT0 >= 0 && AU.ac) {
+      const el = AU.ac.currentTime - NARR.recT0; let b = NARR.bound;
+      for (const w of NARR.recBounds) if (w[2] <= el) b = Math.max(b, w[0] + w[1]);
+      if (b > NARR.bound) { NARR.bound = b; NARR.boundOn = NARR.boundSeen = true; karaoke(b); }
+    }
+    if (T - NARR.callT > Math.max(NARR.est, 3) * 2 + 10) { stopSpeech(); narrFinish(false, 'timeout'); }
+    return;
+  }
+  const el = T - NARR.callT;
+  if (NARR.startT < 0 && el > 1.8) NARR.startT = NARR.callT + .3;
+  let speaking = true; try { speaking = speechSynthesis.speaking; } catch (e) {}
+  if (el > NARR.est * 2.2 + 3 && !speaking) narrFinish(false, 'timeout');
+  else if (el > NARR.est * 4 + 8) { stopSpeech(); narrFinish(false, 'timeout'); }
+}
+function stopSpeech() {
+  NARR.tok++;
+  if (NARR.src) { try { NARR.src.onended = null; NARR.src.stop(); } catch (e) {} NARR.src = null; }
+  if (TTS_OK) try { speechSynthesis.cancel(); } catch (e) {}
+  duck(false);
+}
+function spokenFrac() {
+  if (NARR.done) return 9;
+  if (NARR.startT < 0) return 0;
+  if (NARR.boundOn) return NARR.bound / Math.max(1, NARR.text.length);
+  return (T - NARR.startT) / Math.max(.3, NARR.est);
+}
+
+/* ================= 画面: 多层画布 ================= */
+const cv = document.getElementById('stage'), g = cv.getContext('2d');
+const gcv = document.createElement('canvas'), gg = gcv.getContext('2d');   /* 辉光 (1/4) */
+const bcv = document.createElement('canvas'), bgx = bcv.getContext('2d');  /* 辉光模糊 */
+const acv = document.createElement('canvas'), ax = acv.getContext('2d');   /* 大气: 墨、雾、云、光束 (1/3) */
+const rcv = document.createElement('canvas'), rx = rcv.getContext('2d');   /* 盘古的轮廓光 (1/2) */
+let W = 1, H = 1, DPR = 1, S = 1, OX = 0, OY = 0, FILTER = false, T = 0, shX = 0, shY = 0;
+const GS = .25, AS = 1 / 3, RS = .5;
+const VIEW = {z:1, l:-500, r:500, t:-450, b:550};
+const REDUCED = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+try { bgx.filter = 'blur(2px)'; FILTER = bgx.filter === 'blur(2px)'; bgx.filter = 'none'; } catch (e) { FILTER = false; }
+function resize() {
+  W = Math.max(1, innerWidth); H = Math.max(1, innerHeight);
+  DPR = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(4e6 / (W * H)));
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  const sz = (c, k) => { c.width = Math.max(2, Math.round(cv.width * k)); c.height = Math.max(2, Math.round(cv.height * k)); };
+  sz(gcv, GS); sz(bcv, GS); sz(acv, AS); sz(rcv, RS);
+  S = Math.min(W, H) / 1000; OX = W / 2; OY = H * .45;
+}
+function setView() {
+  const z = S * P.camZ; VIEW.z = z;
+  VIEW.l = P.camX - OX / z; VIEW.r = P.camX + (W - OX) / z;
+  VIEW.t = P.camY - OY / z; VIEW.b = P.camY + (H - OY) / z;
+}
+function setWorld(ctx, k) { const z = VIEW.z; ctx.setTransform(k * z, 0, 0, k * z, k * (OX + shX - P.camX * z), k * (OY + shY - P.camY * z)); }
+const toScreen = (x, y) => [(OX + shX + (x - P.camX) * VIEW.z) * DPR, (OY + shY + (y - P.camY) * VIEW.z) * DPR];
+
+function mkSprite(c, hard = .25) {
+  const s = 64, cv2 = document.createElement('canvas'); cv2.width = cv2.height = s;
+  const x = cv2.getContext('2d'), gr = x.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+  gr.addColorStop(0, rgba(c, 1)); gr.addColorStop(hard, rgba(c, .5)); gr.addColorStop(.62, rgba(c, .12)); gr.addColorStop(1, rgba(c, 0));
+  x.fillStyle = gr; x.fillRect(0, 0, s, s); return cv2;
+}
+function mkFog(c, core = 1) {
+  const s = 128, cv2 = document.createElement('canvas'); cv2.width = cv2.height = s;
+  const x = cv2.getContext('2d'), gr = x.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+  gr.addColorStop(0, rgba(c, core)); gr.addColorStop(.42, rgba(c, core * .42)); gr.addColorStop(1, rgba(c, 0));
+  x.fillStyle = gr; x.fillRect(0, 0, s, s); return cv2;
+}
+const SP = {
+  white:mkSprite(WHITE), gold:mkSprite([255,205,120]), warm:mkSprite([255,150,70]), blue:mkSprite([160,200,255]),
+  silver:mkSprite([225,232,255]), star:mkSprite([255,250,235], .12), dust:mkSprite([150,110,80], .4), mote:mkSprite([230,200,170], .5),
+  amber:mkSprite([255,176,96], .35), red:mkSprite([235,80,60])
+};
+const FOG = { white:mkFog(WHITE), ink:mkFog([10,7,9], .9), mistA:mkFog([150,120,135]), mistB:mkFog([100,128,140]), mistC:mkFog([170,125,90]),
+  mistD:mkFog([125,95,145]), dust:mkFog([150,112,82]), shade:mkFog([0,0,0]) };
+const MOONSP = (() => {
+  const s = 128, c = document.createElement('canvas'); c.width = c.height = s; const x = c.getContext('2d');
+  const gr = x.createRadialGradient(s * .42, s * .42, 4, s / 2, s / 2, s * .46); gr.addColorStop(0, '#FFFFFF'); gr.addColorStop(1, '#C9D6F2');
+  x.fillStyle = gr; x.beginPath(); x.arc(s / 2, s / 2, s * .46, 0, TAU); x.fill();
+  x.globalCompositeOperation = 'destination-out'; x.beginPath(); x.arc(s / 2 + s * .2, s / 2 - s * .12, s * .4, 0, TAU); x.fill();
+  return c;
+})();
+const GRAIN = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 160; const x = c.getContext('2d'), d = x.createImageData(160, 160);
+  for (let i = 0; i < d.data.length; i += 4) { const v = 128 + (Math.random() - .5) * 190; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; }
+  x.putImageData(d, 0, 0); return c;
+})();
+let grainPat = null;
+function spr(ctx, sp, x, y, r, a) { if (a <= .003 || r <= 0) return; ctx.globalAlpha = a > 1 ? 1 : a; ctx.drawImage(sp, x - r, y - r, r * 2, r * 2); }
+function sprE(ctx, sp, x, y, rx_, ry, rot, a) {             /* 拉长的雾团, 像墨在水里 */
+  if (a <= .003) return;
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.globalAlpha = a > 1 ? 1 : a; ctx.drawImage(sp, -rx_, -ry, rx_ * 2, ry * 2); ctx.restore();
+}
+function ribbonW(ctx, pts, fill, mul = 1) {
+  const n = pts.length; if (n < 2) return;
+  const L = [], R = [];
+  for (let i = 0; i < n; i++) {
+    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)];
+    let dx = b[0] - a[0], dy = b[1] - a[1]; const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
+    const w = pts[i][2] * mul / 2;
+    L.push([pts[i][0] - dy * w, pts[i][1] + dx * w]); R.push([pts[i][0] + dy * w, pts[i][1] - dx * w]);
+  }
+  ctx.beginPath(); ctx.moveTo(L[0][0], L[0][1]);
+  for (let i = 1; i < n; i++) ctx.lineTo(L[i][0], L[i][1]);
+  for (let i = n - 1; i >= 0; i--) ctx.lineTo(R[i][0], R[i][1]);
+  ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
+}
+function bez3(p0, p1, p2, p3, t) {
+  const u = 1 - t, a = u * u * u, b = 3 * u * u * t, c = 3 * u * t * t, d = t * t * t;
+  return [a * p0[0] + b * p1[0] + c * p2[0] + d * p3[0], a * p0[1] + b * p1[1] + c * p2[1] + d * p3[1]];
+}
+const wave = (x, y0, a1, a2) => y0 + Math.sin(x * .006 + T * .5) * a1 + Math.sin(x * .017 - T * .8) * a2;
+function edgeLine(ctx, x0, x1, fy, step = 30) {
+  ctx.beginPath();
+  for (let x = x0; x <= x1 + step; x += step) { const y = fy(x); x === x0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }
+}
+
+/* ================= 色调的过渡 ================= */
+const PAL = {cur:mixPal(PALS.cosmos, PALS.cosmos, 0), from:null, to:'cosmos', t0:0, d:.01, name:'cosmos'};
+let PC = PAL.cur;
+function palTo(name, dur = 3, delay = 0) {
+  if (!PALS[name]) return;
+  PAL.from = Object.assign({}, PAL.cur); PAL.to = name; PAL.t0 = T + delay; PAL.d = Math.max(.01, dur); PAL.name = name;
+}
+function palSet(name) { PAL.from = null; PAL.name = PAL.to = name; PAL.cur = mixPal(PALS[name], PALS[name], 0); }
+function palTick() {
+  if (PAL.from) { const t = clamp((T - PAL.t0) / PAL.d); PAL.cur = mixPal(PAL.from, PALS[PAL.to], EASE.io(t)); if (t >= 1) PAL.from = null; }
+  let p = PAL.cur;
+  G.nightK = 0;
+  if (P.dayCyc > .005) { G.nightK = P.dayCyc * (.5 + .5 * Math.sin(G.dayPhase)) * .9; p = mixPal(p, PALS.night, G.nightK); }
+  if (P.wheel > .005) {                                   /* 太阳的高度决定白天、黄昏、黑夜 */
+    const el = (P.gY - skyBodyPos('sun')[1]) / WHEEL.r;
+    const tgt = el > .12 ? mixPal(PALS.sunset, PALS.day, sstep(.12, .55, el)) : mixPal(PALS.night, PALS.sunset, sstep(-.22, .12, el));
+    p = mixPal(p, tgt, clamp(P.wheel));
+  }
+  PC = p;
+}
+const lum = c => .3 * c[0] + .59 * c[1] + .11 * c[2];
+
+/* ================= 背景与后期 ================= */
+function drawBG() {
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+  const gr = g.createLinearGradient(0, 0, 0, cv.height);
+  gr.addColorStop(0, rgba(PC.bg0)); gr.addColorStop(.58, rgba(PC.bg1)); gr.addColorStop(1, rgba(PC.bg2));
+  g.fillStyle = gr; g.fillRect(0, 0, cv.width, cv.height);
+  const [sx, sy] = keyLightScreen(), R = Math.max(cv.width, cv.height) * .75;
+  const rg = g.createRadialGradient(sx, sy, 0, sx, sy, R);
+  rg.addColorStop(0, rgba(PC.glow, PC.glowA)); rg.addColorStop(.35, rgba(PC.glow, PC.glowA * .35)); rg.addColorStop(1, rgba(PC.glow, 0));
+  g.globalCompositeOperation = 'screen'; g.fillStyle = rg; g.fillRect(0, 0, cv.width, cv.height); g.globalCompositeOperation = 'source-over';
+}
+function keyLight() {                                      /* 主光源的位置 (世界坐标) */
+  if (P.sun > .05) { const s = skyBodyPos('sun'), k = clamp(P.sun * 1.5); return [lerp(P.lx, s[0], k), lerp(P.ly, s[1], k)]; }
+  return [P.lx, P.ly];
+}
+function keyLightScreen() { const k = keyLight(); return toScreen(k[0], k[1]); }
+function flare(sx, sy, a, col) {                           /* 镜头光晕和横向光纹 */
+  if (a <= .01) return;
+  const cx = cv.width / 2, cy = cv.height / 2, dx = cx - sx, dy = cy - sy, m = Math.min(cv.width, cv.height);
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'lighter';
+  for (const [f, r, al] of [[.35, .05, .16], [.6, .02, .24], [.85, .08, .09], [1.25, .035, .15], [1.6, .12, .06]]) {
+    const x = sx + dx * f * 2, y = sy + dy * f * 2, R = r * m, gr = g.createRadialGradient(x, y, 0, x, y, R);
+    gr.addColorStop(0, rgba(col, al * a)); gr.addColorStop(1, rgba(col, 0));
+    g.fillStyle = gr; g.beginPath(); g.arc(x, y, R, 0, TAU); g.fill();
+  }
+  const L = cv.width * .45, sg = g.createLinearGradient(sx - L, sy, sx + L, sy);
+  sg.addColorStop(0, rgba(col, 0)); sg.addColorStop(.5, rgba(col, .26 * a)); sg.addColorStop(1, rgba(col, 0));
+  g.fillStyle = sg; g.fillRect(sx - L, sy - 1.6 * DPR, L * 2, 3.2 * DPR);
+  g.globalCompositeOperation = 'source-over';
+}
+function post() {
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'lighter';
+  if (FILTER) {
+    bgx.setTransform(1, 0, 0, 1, 0, 0); bgx.clearRect(0, 0, bcv.width, bcv.height);
+    bgx.filter = 'blur(3px)'; bgx.drawImage(gcv, 0, 0); bgx.filter = 'none';
+    g.globalAlpha = .55; g.drawImage(gcv, 0, 0, cv.width, cv.height); g.globalAlpha = 1;
+    g.drawImage(bcv, 0, 0, cv.width, cv.height);
+  } else g.drawImage(gcv, 0, 0, cv.width, cv.height);
+  g.globalCompositeOperation = 'source-over';
+  const imp = T - G.impactT;                               /* 劈开时和太阳的镜头光 */
+  if (imp > 0 && imp < 3.5) { const q = toScreen(CRK.pts[0][0], CRK.pts[0][1]); flare(q[0], q[1], (1 - imp / 3.5) * 1.2, [255, 226, 170]); }
+  if (P.sun > .3) { const s = skyBodyPos('sun'), q = toScreen(s[0], s[1]); flare(q[0], q[1], (P.sun - .3) * sstep(P.gY + 20, P.gY - 120, s[1]) * .9, [255, 214, 150]); }
+  const fl = G.flash * Math.exp(-(T - G.flashT) * 4.5);
+  if (fl > .01) { g.fillStyle = `rgba(255,248,232,${fl})`; g.fillRect(0, 0, cv.width, cv.height); }
+  const vg = g.createRadialGradient(cv.width / 2, cv.height * .46, Math.min(cv.width, cv.height) * .38, cv.width / 2, cv.height * .46, Math.max(cv.width, cv.height) * .78);
+  vg.addColorStop(0, 'rgba(8,5,3,0)'); vg.addColorStop(1, 'rgba(8,5,3,.42)');
+  g.fillStyle = vg; g.fillRect(0, 0, cv.width, cv.height);
+  if (!grainPat) grainPat = g.createPattern(GRAIN, 'repeat');
+  g.setTransform(1, 0, 0, 1, -Math.floor(Math.random() * 160), -Math.floor(Math.random() * 160));
+  g.globalCompositeOperation = 'overlay'; g.globalAlpha = .065; g.fillStyle = grainPat; g.fillRect(0, 0, cv.width + 160, cv.height + 160);
+  g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; g.setTransform(1, 0, 0, 1, 0, 0);
+}
+
+/* ================= 大鸡蛋 ================= */
+const EGG = {x:0, y:-60, h:300, w:225, k:.1};
+function eggBump(th) {
+  let s = 0;
+  for (const b of G.bumps) {
+    const age = T - b.t; if (age < 0 || age > 2.5) continue;
+    let d = th - b.th; d = Math.atan2(Math.sin(d), Math.cos(d));
+    s += b.a * Math.exp(-d * d / (2 * .32 * .32)) * Math.exp(-age * 3.2) * Math.cos(age * 15);
+  }
+  return s;
+}
+function eggPt(th, extra = 0) {
+  const u = -Math.cos(th), s = Math.sin(th), rr = 1 + eggBump(th) + extra;
+  return [EGG.x + G.jx + EGG.w * s * (1 + EGG.k * u) * rr, EGG.y + G.jy + EGG.h * u * rr];
+}
+function eggHalfW(y) { const u = clamp((y - EGG.y) / EGG.h, -1, 1); return EGG.w * Math.sqrt(1 - u * u) * (1 + EGG.k * u); }
+function eggPath(ctx, n = 72) {
+  ctx.beginPath();
+  for (let i = 0; i <= n; i++) { const p = eggPt(i / n * TAU); i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); }
+  ctx.closePath();
+}
+function eggIn(r, a) { const s = Math.sin(a) * r; return [EGG.x + EGG.w * .9 * Math.cos(a) * r * (1 + EGG.k * s), EGG.y + EGG.h * .9 * s]; }
+let CRK = makeCrack(EGG.y - EGG.h * .62);
+function makeCrack(yc) {
+  const R = rng(4242), xr = eggHalfW(yc), n = 24, pts = [];
+  for (let i = 0; i <= n; i++) {
+    const f = i / n, edge = i === 0 || i === n;
+    pts.push([lerp(xr, -xr, f), yc + (edge ? 0 : (R() - .5) * 26 + Math.sin(f * 9) * 5 + (1 - Math.pow(2 * f - 1, 2)) * 22)]);
+  }
+  const br = [];
+  for (let j = 0; j < 6; j++) {
+    const i = 2 + Math.floor(R() * (n - 4)), up = R() < .5 ? -1 : 1, L = 18 + R() * 30, p = pts[i];
+    br.push({i, pts:[p, [p[0] + (R() - .5) * 20, p[1] + up * L * .5], [p[0] + (R() - .5) * 30, p[1] + up * L]]});
+  }
+  return {yc, pts, br, n, thR:Math.acos(clamp(-(yc - EGG.y) / EGG.h, -1, 1))};
+}
+function halfPath(ctx, top) {
+  const thR = CRK.thR, n = 40; ctx.beginPath();
+  if (top) {
+    for (let i = 0; i <= n; i++) { const p = eggPt(lerp(-thR, thR, i / n)); i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); }
+    for (const p of CRK.pts) ctx.lineTo(p[0], p[1]);
+  } else {
+    for (let i = 0; i <= n; i++) { const p = eggPt(lerp(thR, TAU - thR, i / n)); i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); }
+    for (let j = CRK.pts.length - 1; j >= 0; j--) ctx.lineTo(CRK.pts[j][0], CRK.pts[j][1]);
+  }
+  ctx.closePath();
+}
+
+/* ================= 混沌: 像墨滴进水里 ================= */
+const INK = (() => {
+  const R = rng(2024), a = [], mists = [FOG.mistA, FOG.mistB, FOG.mistC, FOG.mistD];
+  for (let i = 0; i < 44; i++) {
+    const dark = i % 3 !== 0;
+    a.push({dark, r0:.12 + Math.sqrt(R()) * .92, a0:R() * TAU, sp:.03 + R() * .07, ph:R() * TAU, rad:150 + R() * 250,
+      img:dark ? FOG.ink : mists[i % 4], al:dark ? .45 + R() * .3 : .24 + R() * .2, eu:R(), dl:R(), sx:R() * 2 - 1, sy:R(), st:1.4 + R() * 1.2});
+  }
+  return a;
+})();
+function drawInk() {
+  const a = P.chaos * PC.ink; if (a <= .005) return;
+  const ef = EASE.io(clamp(P.eggForm)), su = EASE.io(clamp(P.splitUp)), sd = EASE.io(clamp(P.splitDn));
+  for (const b of INK) {
+    const ang = b.a0 + G.cT * b.sp * (1.3 - b.r0 * .5), rr = b.r0 * 760;
+    let x = Math.cos(ang) * rr * 1.3 + Math.sin(T * .21 + b.ph) * 60, y = -60 + Math.sin(ang) * rr * .78 + Math.cos(T * .17 + b.ph) * 50;
+    let rad = b.rad, al = b.al * a, st = b.st;
+    const rot = ang + PI / 2 + Math.sin(T * .1 + b.ph) * .4;
+    if (ef > 0) {
+      const k = EASE.io(clamp(ef * 1.3 - b.dl * .3)), e = eggIn(Math.sqrt(b.eu) * .8, b.a0 + G.eT * b.sp * 2);
+      x = lerp(x, e[0], k); y = lerp(y, e[1], k); rad = lerp(rad, 70 + b.rad * .2, k); st = lerp(st, 1.2, k); al *= 1 - .45 * k;
+    }
+    const sp = b.dark ? sd : su;
+    if (sp > 0) { x = lerp(x, b.sx * 1300, sp); y = lerp(y, b.dark ? P.gY + 120 + b.sy * 300 : G.skyEff - 100 - b.sy * 300, sp); al *= 1 - sp; }
+    sprE(ax, b.img, x, y, rad * st, rad / st * .9 + 20, rot, al);
+  }
+  ax.globalAlpha = 1;
+}
+let PT = [];
+function initParticles() {
+  const n = Math.round(clamp(innerWidth * innerHeight / 2600, 260, 480));
+  PT = [];
+  for (let i = 0; i < n; i++) {
+    const R = rng(i * 7919 + 13);
+    PT.push({r0:.05 + Math.sqrt(R()) * .95, a0:R() * TAU, sp:.05 + R() * .16, ph:R() * TAU, sz:2.5 + R() * R() * 6,
+      light:R() < .5, br:.2 + R() * .45, eu:R(), dl:R(), sx:R() * 2 - 1, sy:R()});
+  }
+}
+function drawMotes() {
+  const a = P.chaos; if (a <= .005) return;
+  g.globalCompositeOperation = 'lighter';
+  const ef = P.eggForm, su = P.splitUp, sd = P.splitDn, skyE = G.skyEff, gy = P.gY, land = P.land;
+  for (const p of PT) {
+    const ang = p.a0 + G.cT * p.sp * (1.2 - p.r0 * .6), rad = p.r0 * 820;
+    let x = Math.cos(ang) * rad * 1.25 + Math.sin(T * .5 + p.ph) * 40, y = -60 + Math.sin(ang) * rad * .8 + Math.cos(T * .43 + p.ph * 1.3) * 30;
+    let al = p.br * a * .7 * (.25 + .75 * clamp(ef * 1.5)), sz = p.sz * (1 + 1.6 * (1 - clamp(ef * 1.5))), sp = SP.mote;
+    if (ef > 0) {
+      const k = EASE.io(clamp(ef * 1.35 - p.dl * .35));
+      if (k > 0) { const e = eggIn(Math.sqrt(p.eu), p.a0 + G.eT * p.sp * 1.6); x = lerp(x, e[0], k); y = lerp(y, e[1], k); if (k > .5) sp = SP.amber; }
+    }
+    const s = p.light ? su : sd;
+    if (s > 0) {
+      const q = EASE.io(clamp(s * 1.4 - p.dl * .4));
+      if (q > 0) {
+        const tx = p.sx * 1500, ty = p.light ? skyE - 25 - p.sy * p.sy * 420 : gy + 20 + p.sy * p.sy * 460;
+        const mx = lerp(x, tx, .3), my = p.light ? Math.min(y, CRK.yc) - 60 : Math.max(y, EGG.y + 150) + 40, u = 1 - q;
+        x = u * u * x + 2 * u * q * mx + q * q * tx; y = u * u * y + 2 * u * q * my + q * q * ty;
+        const fly = 4 * q * (1 - q);
+        al *= (1 - .45 * q) * (1 + 2 * fly); sz *= 1 + 1.4 * fly; sp = p.light ? SP.blue : SP.dust;
+      }
+    }
+    if (!p.light) al *= 1 - land;
+    spr(g, sp, x, y, sz * 2.2, al);
+  }
+  g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+}
+
+function drawEggBack() {
+  const split = Math.max(P.splitUp, P.splitDn), a = P.egg;
+  if (a <= .005 || split >= .07) return;
+  eggPath(gg); gg.fillStyle = `rgba(255,160,80,${.3 * a})`; gg.fill();
+  eggPath(g);
+  const gr = g.createRadialGradient(EGG.x + 20, EGG.y + 50, 10, EGG.x, EGG.y, 340);
+  gr.addColorStop(0, `rgba(236,160,92,${.36 * a})`); gr.addColorStop(.5, `rgba(160,80,36,${.5 * a})`);
+  gr.addColorStop(.85, `rgba(80,36,16,${.72 * a})`); gr.addColorStop(1, `rgba(50,22,10,${.86 * a})`);
+  g.fillStyle = gr; g.fill();
+}
+function drawEggFront() {
+  const split = Math.max(P.splitUp, P.splitDn), a = P.egg;
+  if (a > .005 && split < .07) {
+    if (P.dark > .005) { eggPath(g); g.fillStyle = `rgba(14,6,2,${.82 * P.dark * a})`; g.fill(); }
+    g.save(); eggPath(g); g.clip(); g.lineCap = 'round';
+    for (let i = 0; i < 5; i++) {                         /* 蛋壳里的云纹 */
+      const r0 = 50 + i * 42, st = T * .1 * (i % 2 ? 1 : -1) + i * 1.7;
+      g.beginPath(); g.ellipse(EGG.x, EGG.y + 20, r0 * 1.15, r0 * 1.5, st * .3, st, st + 2.3);
+      g.strokeStyle = `rgba(255,214,170,${.05 * a})`; g.lineWidth = 12; g.stroke();
+    }
+    const rim = g.createRadialGradient(EGG.x, EGG.y, 150, EGG.x, EGG.y, 320);
+    rim.addColorStop(0, 'rgba(255,220,170,0)'); rim.addColorStop(1, `rgba(255,220,170,${.28 * a})`);
+    g.fillStyle = rim; g.fillRect(EGG.x - 260, EGG.y - 330, 520, 660);
+    g.restore();
+    eggPath(g); g.lineWidth = 2.2; g.strokeStyle = `rgba(255,232,196,${.55 * a})`; g.stroke();
+    eggPath(gg); gg.lineWidth = 14; gg.strokeStyle = `rgba(255,170,90,${.35 * a})`; gg.stroke();
+    const hl = g.createRadialGradient(EGG.x - 95, EGG.y - 150, 5, EGG.x - 95, EGG.y - 150, 120);
+    hl.addColorStop(0, `rgba(255,250,240,${.3 * a})`); hl.addColorStop(1, 'rgba(255,250,240,0)');
+    g.fillStyle = hl; g.beginPath(); g.ellipse(EGG.x - 95, EGG.y - 150, 70, 110, -.5, 0, TAU); g.fill();
+  }
+  if (split >= .07 && a > .005) drawHalves(a);
+}
+function drawHalves(a) {
+  const su = EASE.io(clamp(P.splitUp)), sd = EASE.io(clamp(P.splitDn));
+  const parts = [[true, -su * 560, -su * .18, 1 - sstep(.25, .85, P.splitUp)], [false, sd * 360, sd * .12, 1 - sstep(.2, .8, P.splitDn)]];
+  for (const [top, dy, rot, al] of parts) {
+    const A = a * al; if (A <= .005) continue;
+    const cx = EGG.x, cy = top ? EGG.y - EGG.h * .7 : EGG.y + EGG.h * .3;
+    for (const ctx of [g, gg]) {
+      ctx.save(); ctx.translate(cx, cy + dy); ctx.rotate(rot); ctx.translate(-cx, -cy);
+      halfPath(ctx, top);
+      if (ctx === g) { ctx.fillStyle = `rgba(150,78,36,${.42 * A})`; ctx.fill(); ctx.lineWidth = 2.2; ctx.strokeStyle = `rgba(255,232,196,${.55 * A})`; ctx.stroke(); }
+      else { ctx.lineWidth = 16; ctx.strokeStyle = `rgba(255,214,150,${.5 * A})`; ctx.stroke(); }
+      ctx.restore();
+    }
+  }
+}
+function drawCrack() {
+  const c = P.crack, split = Math.max(P.splitUp, P.splitDn);
+  if (c <= .005 || split >= .07) return;
+  const n = CRK.n, upto = c * n, pts = CRK.pts, i0 = Math.floor(upto), f = upto - i0;
+  const path = ctx => {
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i <= i0; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    if (f > 0 && i0 < n) ctx.lineTo(lerp(pts[i0][0], pts[i0 + 1][0], f), lerp(pts[i0][1], pts[i0 + 1][1], f));
+  };
+  g.lineJoin = g.lineCap = 'round';
+  path(g); g.strokeStyle = '#FFF8E6'; g.lineWidth = 2.8; g.stroke();
+  path(gg); gg.lineJoin = 'round'; gg.strokeStyle = 'rgba(255,222,160,.95)'; gg.lineWidth = 18; gg.stroke();
+  g.lineWidth = 1.6;
+  for (const b of CRK.br) {
+    if (b.i > upto) continue;
+    g.beginPath(); g.moveTo(b.pts[0][0], b.pts[0][1]); g.lineTo(b.pts[1][0], b.pts[1][1]); g.lineTo(b.pts[2][0], b.pts[2][1]); g.stroke();
+  }
+  g.globalCompositeOperation = 'lighter';
+  for (let i = 0; i <= i0; i += 2) spr(g, SP.gold, pts[i][0], pts[i][1], 34 + 10 * Math.sin(T * 3 + i), .35);
+  g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+}
+function drawRays(ctx) {                                    /* 裂缝里射出的光束 (画在大气层) */
+  const a = P.rays; if (a <= .005) return;
+  const su = EASE.io(clamp(P.splitUp));
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 18; i++) {
+    const p = CRK.pts[Math.min(CRK.n, 1 + Math.floor(i * CRK.n / 18))], up = i % 2 ? -1 : 1;
+    if (up > 0 && su > .5) continue;
+    const ang = (up < 0 ? 0 : PI) + Math.sin(i * 2.3 + T * .25) * .5 + (p[0] / 400) * .6 * (up < 0 ? 1 : -1);
+    const L = (600 + hash(i) * 800) * (.6 + .4 * a), w = 30 + hash(i + 9) * 60;
+    const x0 = p[0], y0 = p[1] - (up < 0 ? su * 200 : 0), x1 = x0 + Math.sin(ang) * L, y1 = y0 - Math.cos(ang) * L;
+    const ra = a * (up > 0 ? 1 - su * 2 : 1), gr = ctx.createLinearGradient(x0, y0, x1, y1);
+    gr.addColorStop(0, `rgba(255,236,196,${.34 * ra})`); gr.addColorStop(1, 'rgba(255,236,196,0)');
+    const nx = Math.cos(ang) * w, ny = Math.sin(ang) * w;
+    ctx.fillStyle = gr; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1 + nx, y1 + ny); ctx.lineTo(x1 - nx, y1 - ny); ctx.closePath(); ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+/* ================= 天: 一整片发光的云顶 ================= */
+function drawSkyFill() {
+  const a = P.sky; if (a <= .005) return;
+  const y0 = G.skyEff, x0 = VIEW.l - 60, x1 = VIEW.r + 60, top = Math.min(VIEW.t - 60, y0 - 20), nk = G.nightK;
+  const zen = mixc([20, 46, 96], [5, 9, 26], nk), mid = mixc([126, 170, 218], [22, 38, 74], nk), edge = mixc(mixc(PC.light, WHITE, .55), [70, 90, 140], nk);
+  const fy = x => wave(x, y0, 6, 3);
+  g.beginPath(); g.moveTo(x0, top);
+  for (let x = x0; x <= x1 + 40; x += 40) g.lineTo(x, fy(x));
+  g.lineTo(x1 + 40, top); g.closePath();
+  const gr = g.createLinearGradient(0, y0, 0, y0 - 1000);
+  gr.addColorStop(0, rgba(edge, .95 * a)); gr.addColorStop(.06, rgba(mid, .92 * a));
+  gr.addColorStop(.4, rgba(mixc(mid, zen, .6), .9 * a)); gr.addColorStop(1, rgba(zen, .88 * a));
+  g.fillStyle = gr; g.fill();
+  edgeLine(gg, x0, x1, fy); gg.strokeStyle = rgba(mixc(PC.light, WHITE, .4), .5 * a * (1 - nk * .6)); gg.lineWidth = 26; gg.stroke();
+}
+function drawCeiling() {                                   /* 云顶 (大气层) */
+  const a = P.sky * (1 - P.land); if (a <= .005) return;
+  const y0 = G.skyEff, nk = G.nightK, span = VIEW.r - VIEW.l + 700, drift = G.cT * 10 + G.lapse * 90;
+  for (let i = 0; i < 36; i++) {
+    const x = VIEW.l - 350 + (((hash(i * 3.7) * span + drift * (.6 + hash(i) * .8)) % span) + span) % span;
+    const y = y0 - 6 - hash(i + 5) * 70, r = 60 + hash(i + 9) * 90;
+    sprE(ax, FOG.shade, x, y - r * .3, r * 1.5, r * .55, 0, .1 * a);
+    sprE(ax, FOG.white, x, y + r * .1, r * 1.4, r * .5, 0, .2 * a * (1 - .55 * nk));
+  }
+  ax.globalAlpha = 1;
+}
+function drawGapLight() {                                  /* 天地之间的光 (大气层) */
+  const a = Math.min(P.sky, P.earth) * (1 - P.land); if (a <= .005) return;
+  const y0 = G.skyEff, y1 = P.gY, k = a * (1 - G.nightK * .75), c = mixc(PC.light, WHITE, .3);
+  const gr = ax.createLinearGradient(0, y0, 0, y1);
+  gr.addColorStop(0, rgba(c, .34 * k)); gr.addColorStop(.45, rgba(c, .1 * k)); gr.addColorStop(1, rgba([255, 204, 146], .26 * k));
+  ax.fillStyle = gr; ax.fillRect(VIEW.l - 60, y0, VIEW.r - VIEW.l + 120, y1 - y0);
+  ax.globalCompositeOperation = 'lighter';                  /* 从天上斜照下来的光柱 */
+  const kl = keyLight();
+  for (let i = 0; i < 9; i++) {
+    const bx = lerp(VIEW.l, VIEW.r, (i + .5) / 9) + Math.sin(T * .08 + i * 2.1) * 60, w = 40 + hash(i + 3) * 90;
+    const lean = clamp((bx - kl[0]) / 1400, -.6, .6), L = y1 - y0, x2 = bx + lean * L;
+    const bg = ax.createLinearGradient(0, y0, 0, y1);
+    bg.addColorStop(0, rgba(c, .1 * k * (.5 + hash(i) * .5))); bg.addColorStop(1, rgba(c, 0));
+    ax.fillStyle = bg; ax.beginPath(); ax.moveTo(bx - w, y0); ax.lineTo(bx + w, y0); ax.lineTo(x2 + w * 1.8, y1); ax.lineTo(x2 - w * 1.8, y1); ax.closePath(); ax.fill();
+  }
+  ax.globalCompositeOperation = 'source-over';
+}
+
+/* ================= 地: 一层一层的岩层 ================= */
+const STRATA = ['#94643e', '#6f4a2e', '#a0744a', '#5a3a24', '#7c5638', '#4c301e', '#8a6040', '#3e2818'].map(hex);
+function drawEarth() {
+  const a = P.earth; if (a <= .005) return;
+  const y0 = P.gY, L = P.land, x0 = VIEW.l - 60, x1 = VIEW.r + 60, bot = Math.max(VIEW.b + 60, y0 + 100), nk = G.nightK;
+  const litK = 1 - .55 * nk;
+  const fy = x => wave(x, y0, 5 * (1 - L), 2 * (1 - L));
+  g.beginPath(); g.moveTo(x0, bot);
+  for (let x = x0; x <= x1 + 40; x += 40) g.lineTo(x, fy(x));
+  g.lineTo(x1 + 40, bot); g.closePath();
+  const depth = Math.max(200, bot - y0), gr = g.createLinearGradient(0, y0, 0, y0 + depth);
+  const top = mixc([150, 104, 64], mixc([96, 106, 70], PC.haze, .3), L), midc = mixc([96, 64, 40], [56, 64, 42], L), deep = mixc([40, 26, 16], [24, 28, 18], L);
+  gr.addColorStop(0, rgba(mulc(top, litK), a)); gr.addColorStop(.22, rgba(mulc(midc, litK), a)); gr.addColorStop(1, rgba(mulc(deep, litK), a));
+  g.fillStyle = gr; g.fill();
+  if (L < .99) {
+    const n = Math.round(5 + 9 * P.strata);
+    for (let i = 0; i < n; i++) {
+      const yt = y0 + 24 + i * 40, th = 16 + hash(i) * 14;
+      const al = a * (1 - L) * .55 * (i > 5 ? clamp(P.strata * 9 - (i - 5)) : 1);
+      if (al <= .005) continue;
+      g.beginPath();
+      for (let x = x0; x <= x1 + 50; x += 50) { const y = yt + Math.sin(x * .004 + i * 1.7) * 7; x === x0 ? g.moveTo(x, y) : g.lineTo(x, y); }
+      for (let x = x1 + 50; x >= x0 - 50; x -= 50) g.lineTo(x, yt + th + Math.sin(x * .0045 + i * 2.3) * 6);
+      g.closePath(); g.fillStyle = rgba(mulc(STRATA[i % STRATA.length], litK * (1 - i / (n + 4) * .55)), al); g.fill();
+    }
+    for (let i = 0; i < 90; i++) {                          /* 碎石 */
+      const x = lerp(x0, x1, hash(i * 3.1)), y = y0 + 10 + Math.pow(hash(i * 7.7 + 1), 1.3) * (80 + 480 * P.strata), r = 3 + hash(i + 2) * 6;
+      g.globalAlpha = .35 * a * (1 - L); g.fillStyle = i % 2 ? '#2e1d12' : '#b48a60';
+      g.beginPath(); g.ellipse(x, y, r * 1.4, r * .8, 0, 0, TAU); g.fill();
+    }
+    g.globalAlpha = 1;
+  } else {
+    g.lineWidth = 1.2;                                     /* 平原上淡淡的透视线 */
+    for (let i = 1; i <= 7; i++) {
+      const y = y0 + Math.pow(i / 8, 1.8) * depth;
+      g.strokeStyle = rgba(PC.haze, .07 * a); g.beginPath(); g.moveTo(x0, y); g.lineTo(x1, y); g.stroke();
+    }
+  }
+  const hz = g.createLinearGradient(0, y0 - 120, 0, y0 + 4);
+  hz.addColorStop(0, rgba(PC.haze, 0)); hz.addColorStop(1, rgba(mixc(PC.haze, PC.light, .3), .36 * a * (1 - .45 * L)));
+  g.fillStyle = hz; g.fillRect(x0, y0 - 120, x1 - x0, 124);
+  edgeLine(g, x0, x1, fy); g.strokeStyle = rgba(mixc(PC.light, WHITE, .2), .7 * a * (1 - .6 * L) * litK); g.lineWidth = 2.2; g.stroke();
+  edgeLine(gg, x0, x1, fy); gg.strokeStyle = rgba(PC.light, .38 * a * (1 - .6 * L) * litK); gg.lineWidth = 16; gg.stroke();
+}
+
+/* 按当前色调着色的雾团 (缓存) */
+const TINT = new Map();
+function tintFog(c) {
+  const q = v => clamp(Math.round(v / 16), 0, 15), key = q(c[0]) + ',' + q(c[1]) + ',' + q(c[2]);
+  let s = TINT.get(key);
+  if (!s) { s = mkFog([q(c[0]) * 16 + 8, q(c[1]) * 16 + 8, q(c[2]) * 16 + 8]); TINT.set(key, s); if (TINT.size > 40) TINT.delete(TINT.keys().next().value); }
+  return s;
+}
+
+/* ================= 日月星辰 ================= */
+const STARS = (() => { const R = rng(777), a = []; for (let i = 0; i < 190; i++) a.push({u:R(), v:Math.pow(R(), 1.25), s:.6 + R() * R() * 2.6, ph:R() * TAU, sp:1 + R() * 2.5, dl:R()}); return a; })();
+const starPos = s => [VIEW.l + 20 + s.u * (VIEW.r - VIEW.l - 40), lerp(VIEW.t + 20, P.land > .5 ? P.gY - 90 : G.skyEff - 40, s.v * .92)];
+function drawStars() {
+  g.globalCompositeOperation = 'lighter';
+  const skyDark = clamp(1.4 - lum(PC.bg0) / 60);
+  const a = Math.max(P.stars * (1 - .85 * G.day) * skyDark, G.nightK * P.sky * (1 - P.land) * .9);
+  if (a > .005) for (const s of STARS) {
+    const p = starPos(s), tw = .55 + .45 * Math.sin(T * s.sp + s.ph), k = P.stars > .01 ? clamp(P.stars * 1.6 - s.dl * .6) : 1;
+    spr(g, SP.star, p[0], p[1], s.s * 6.5, a * k * tw);
+    if (s.s > 2.2) spr(g, SP.white, p[0], p[1], s.s * 1.4, a * k * .9);
+  }
+  const hf = P.hairFly;                                     /* 头发和胡子飞上天 */
+  if (hf > .001 && hf < .999 && G.hairPts.length) {
+    for (let i = 0; i < 90; i++) {
+      const q = EASE.io(clamp((hf - (i % 30) / 30 * .35) / .65)); if (q <= 0 || q >= 1) continue;
+      const h = G.hairPts[i % G.hairPts.length], e = starPos(STARS[i]);
+      const cx = lerp(h[0], e[0], .3), cy = Math.min(h[1], e[1]) - 220, u = 1 - q;
+      const x = u * u * h[0] + 2 * u * q * cx + q * q * e[0], y = u * u * h[1] + 2 * u * q * cy + q * q * e[1];
+      spr(g, SP.star, x, y, 16, .8 * Math.sin(q * PI) + .2); spr(g, SP.white, x, y, 4, .9);
+    }
+  }
+  g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+}
+const WHEEL = {r:720, a0:-.55};
+function skyBodyPos(which, qq) {
+  const isSun = which === 'sun', stat = isSun ? [-380, -110] : [400, -150], eye = isSun ? G.eyeA : G.eyeB;
+  const p = qq != null ? qq : (isSun ? P.sun : P.moon);
+  let x = stat[0], y = stat[1];
+  if (p < 1 && eye) {
+    const q = EASE.io(clamp(p)), cx = eye[0] + (isSun ? -60 : 60), cy = eye[1] - 480, u = 1 - q;
+    x = u * u * eye[0] + 2 * u * q * cx + q * q * stat[0]; y = u * u * eye[1] + 2 * u * q * cy + q * q * stat[1];
+  }
+  if (P.wheel > 0) {
+    const a = WHEEL.a0 + P.wheelA + (isSun ? 0 : PI), k = EASE.io(clamp(P.wheel));
+    x = lerp(x, Math.sin(a) * WHEEL.r, k); y = lerp(y, P.gY + 150 - Math.cos(a) * WHEEL.r, k);
+  }
+  return [x, y];
+}
+function drawSunMoon() {
+  if (P.sun > .001) {
+    const [x, y] = skyBodyPos('sun'), q = clamp(P.sun), r = lerp(5, 52, EASE.o(q));
+    const A = sstep(P.gY + 40, P.gY - 50, y) * clamp(q * 4);
+    g.globalCompositeOperation = 'lighter';
+    if (q < 1 && G.eyeA) for (let i = 1; i < 9; i++) { const pp = skyBodyPos('sun', q - i * .025); spr(g, SP.gold, pp[0], pp[1], r * (1 - i * .08), .25 * (1 - i / 9) * A); }
+    spr(g, SP.warm, x, y, r * 7, .26 * A); spr(g, SP.gold, x, y, r * 3, .5 * A);
+    g.globalCompositeOperation = 'source-over';
+    const gr = g.createRadialGradient(x - r * .25, y - r * .25, r * .1, x, y, r);
+    gr.addColorStop(0, rgba([255, 253, 242], A)); gr.addColorStop(.7, rgba([255, 230, 166], A)); gr.addColorStop(1, rgba([255, 194, 112], A));
+    g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+    gg.fillStyle = rgba([255, 190, 100], .9 * A); gg.beginPath(); gg.arc(x, y, r * 1.6, 0, TAU); gg.fill();
+  }
+  if (P.moon > .001) {
+    const [x, y] = skyBodyPos('moon'), q = clamp(P.moon), r = lerp(4, 40, EASE.o(q));
+    const A = sstep(P.gY + 40, P.gY - 50, y) * clamp(q * 4);
+    g.globalCompositeOperation = 'lighter';
+    if (q < 1 && G.eyeB) for (let i = 1; i < 9; i++) { const pp = skyBodyPos('moon', q - i * .025); spr(g, SP.silver, pp[0], pp[1], r * (1 - i * .08), .22 * (1 - i / 9) * A); }
+    spr(g, SP.silver, x, y, r * 4, .26 * A);
+    g.globalCompositeOperation = 'source-over'; g.globalAlpha = A;
+    g.save(); g.translate(x, y); g.rotate(-.35); g.drawImage(MOONSP, -r, -r, 2 * r, 2 * r); g.restore();
+    gg.globalAlpha = .7 * A; gg.drawImage(MOONSP, x - r * 1.1, y - r * 1.1, 2.2 * r, 2.2 * r); gg.globalAlpha = 1;
+  }
+  g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+}
+function drawSunBeams() {                                   /* 太阳的光束 (大气层) */
+  if (P.sun < .5) return;
+  const [x, y] = skyBodyPos('sun'), A = (P.sun - .5) * 2 * sstep(P.gY + 20, P.gY - 150, y) * (1 - .6 * (1 - G.day) * P.wheel);
+  if (A <= .01) return;
+  ax.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 12; i++) {
+    const an = i / 12 * TAU + T * .02 + Math.sin(i * 1.7) * .2, L = 700 + hash(i) * 600, w = .05 + hash(i + 4) * .06;
+    const gr = ax.createRadialGradient(x, y, 20, x, y, L);
+    gr.addColorStop(0, rgba(PC.light, .16 * A)); gr.addColorStop(1, rgba(PC.light, 0));
+    ax.fillStyle = gr; ax.beginPath(); ax.moveTo(x, y); ax.arc(x, y, L, an - w, an + w); ax.closePath(); ax.fill();
+  }
+  ax.globalCompositeOperation = 'source-over';
+}
+
+/* ================= 风、云、气 ================= */
+const CLOUDS = (() => {
+  const R = rng(31), a = [];
+  for (let i = 0; i < 7; i++) {
+    const puffs = [], n = 5 + Math.floor(R() * 4);
+    for (let j = 0; j < n; j++) puffs.push([(R() * 2 - 1) * 90, (R() * 2 - 1) * 16 - Math.abs(j - n / 2) * 2, 28 + R() * 34]);
+    a.push({x:(R() * 2 - 1) * 900, y:-250 + R() * 280, sp:6 + R() * 10, s:.8 + R() * .6, dl:i / 7, puffs});
+  }
+  return a;
+})();
+function drawClouds() {
+  const c = P.clouds, mouth = G.mouth || [0, P.gY - 100];
+  const gustK = Math.max(0, 1 - Math.abs(T - G.gust - 1) / 1.2), gx = G.gust > 0 ? 260 * EASE.o(clamp((T - G.gust) / 2.5)) : 0;
+  if (c > .003) {
+    const lit = tintFog(mixc(mixc(PC.light, WHITE, .45), PC.bg1, .12)), shade = tintFog(mixc(PC.haze, PC.bg0, .55));
+    const span = VIEW.r - VIEW.l + 600;
+    CLOUDS.forEach((cl, i) => {
+      const k = EASE.o(clamp((c - cl.dl * .5) / .5)); if (k <= 0) return;
+      let x = cl.x + T * cl.sp + gx; x = VIEW.l - 300 + (((x - VIEW.l + 300) % span) + span) % span;
+      const tx = lerp(mouth[0], x, k), ty = lerp(mouth[1], cl.y, k), s = cl.s * lerp(.2, 1, k);
+      for (const p of cl.puffs) spr(ax, shade, tx + p[0] * s, ty + p[1] * s + 16 * s, p[2] * s * 1.7, .16 * k);
+      for (const p of cl.puffs) spr(ax, lit, tx + p[0] * s, ty + p[1] * s - 6 * s, p[2] * s * 1.5, .24 * k);
+      G.cloudPos[i] = [tx, ty];
+    });
+    ax.globalAlpha = 1;
+  }
+  const b = P.breath;
+  if (b > .003 && b < 1 && G.mouth) {
+    for (let i = 0; i < 40; i++) {
+      const q = clamp((b - i / 40 * .55) / .45); if (q <= 0 || q >= 1) continue;
+      const an = q * 5 + i, x = mouth[0] + q * 380 * Math.cos(i * .7) + Math.sin(an) * 40 * q, y = mouth[1] - q * 520 + Math.cos(an) * 30 * q;
+      spr(ax, FOG.white, x, y, 14 + q * 60, .24 * Math.sin(q * PI));
+    }
+    ax.globalAlpha = 1;
+  }
+  const w = Math.min(1.4, P.wind + gustK * .8);
+  if (w > .003) {
+    g.lineCap = 'round'; g.lineWidth = 2;
+    const span = VIEW.r - VIEW.l + 1400, wc = mixc(PC.light, WHITE, .6);
+    for (let i = 0; i < 6; i++) {
+      const x0 = VIEW.l - 700 + ((T * (90 + i * 17) * (1 + gustK) + i * 523) % span), y0 = P.gY - 560 + i * 72 + Math.sin(T * .3 + i) * 20;
+      let px = x0, py = y0;
+      for (let j = 1; j <= 24; j++) {
+        const f = j / 24, x = x0 + f * 520, y = y0 + Math.sin(f * 7 + T * 1.5 + i) * 14 * (1 - f * .3);
+        g.strokeStyle = rgba(wc, .28 * w * Math.sin(f * PI)); g.beginPath(); g.moveTo(px, py); g.lineTo(x, y); g.stroke(); px = x; py = y;
+      }
+    }
+  }
+}
+
+/* ================= 山: 远山、近山、身体变成的山 ================= */
+function mtnPath(x0, x1, y0, hf, step) {
+  g.beginPath(); g.moveTo(x0, y0 + 4); let hi = 0;
+  for (let x = x0; x <= x1 + step; x += step) { const h = hf(x); if (h > hi) hi = h; g.lineTo(x, y0 - h); }
+  g.lineTo(x1 + step, y0 + 4); g.closePath(); return hi;
+}
+function mistBand(y0, h, a) {
+  if (a <= .005) return;
+  const gr = g.createLinearGradient(0, y0 - h, 0, y0);
+  gr.addColorStop(0, rgba(PC.haze, 0)); gr.addColorStop(1, rgba(PC.haze, a));
+  g.fillStyle = gr; g.fillRect(VIEW.l - 60, y0 - h, VIEW.r - VIEW.l + 120, h + 3);
+}
+function drawFarMtn() {
+  const e = EASE.io(clamp(P.mtn)); if (e <= .003) return;
+  const y0 = P.gY, x0 = VIEW.l - 80, x1 = VIEW.r + 80;
+  const c1 = mixc(PC.haze, PC.bg1, .45), c2 = mixc(mixc(PC.haze, [66, 86, 96], .55), PC.bg1, .2);
+  let hi = mtnPath(x0, x1, y0 - 4, x => e * (70 + ridged(x * .0032 + 20) * 190 + ridged(x * .011 + 3) * 40), 18);
+  let gr = g.createLinearGradient(0, y0 - hi, 0, y0);
+  gr.addColorStop(0, rgba(c1, .9 * e)); gr.addColorStop(1, rgba(mixc(c1, PC.haze, .5), .9 * e)); g.fillStyle = gr; g.fill();
+  mistBand(y0 - 4, 90, .5 * e);
+  hi = mtnPath(x0, x1, y0 - 2, x => e * (40 + ridged(x * .0045 + 40) * 140 + ridged(x * .016 + 9) * 30), 16);
+  gr = g.createLinearGradient(0, y0 - hi, 0, y0);
+  gr.addColorStop(0, rgba(c2, .95 * e)); gr.addColorStop(1, rgba(mixc(c2, PC.haze, .45), .95 * e)); g.fillStyle = gr; g.fill();
+  mistBand(y0 - 2, 60, .42 * e);
+}
+function bodyTop(x) {
+  let top = P.gY;
+  for (const c of G.bodyCircles) { const dx = x - c[0]; if (dx > -c[2] && dx < c[2]) { const y = c[1] - Math.sqrt(c[2] * c[2] - dx * dx); if (y < top) top = y; } }
+  return top;
+}
+function drawNearMtn() {
+  const e = EASE.io(clamp(P.mtn)); if (e <= .003) return;
+  const y0 = P.gY, x0 = VIEW.l - 80, x1 = VIEW.r + 80, xs = [], raw = [];
+  for (let x = x0; x <= x1 + 10; x += 10) { xs.push(x); raw.push(Math.max(0, y0 - bodyTop(x))); }
+  const n = xs.length, R = 12;
+  let maxRaw = 1; for (const r of raw) if (r > maxRaw) maxRaw = r;
+  const pts = []; let hi = 0;
+  for (let i = 0; i < n; i++) {
+    let sum = 0, c = 0;
+    for (let j = Math.max(0, i - R); j <= Math.min(n - 1, i + R); j++) { sum += raw[j]; c++; }
+    const x = xs[i], ev = clamp(sum / c / maxRaw * 1.25);
+    const ridge = ridged(x * .011 + 3.3) * 110 + ridged(x * .027 + 9.1) * 40;
+    const h = lerp(raw[i], 28 + (fbm(x * .003 + 8) * .5 + .5) * 46 + ev * (120 + ridge), e);
+    if (h > hi) hi = h;
+    pts.push([x, y0 - h, h]);
+  }
+  const base = mixc([60, 88, 80], PC.amb, .22);
+  g.beginPath(); g.moveTo(x0, y0 + 2);
+  for (const p of pts) g.lineTo(p[0], p[1]);
+  g.lineTo(pts[pts.length - 1][0], y0 + 2); g.closePath();
+  const gr = g.createLinearGradient(0, y0 - hi, 0, y0);
+  gr.addColorStop(0, rgba(mixc(base, PC.light, .22), e)); gr.addColorStop(.55, rgba(base, e)); gr.addColorStop(1, rgba(mulc(base, .55), e));
+  g.fillStyle = gr; g.fill();
+  g.lineJoin = 'round'; g.lineWidth = 2;
+  g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]));
+  g.strokeStyle = rgba(mixc(PC.light, WHITE, .3), .32 * e); g.stroke();
+  const glint = Math.max(0, 1 - Math.abs(T - G.glintM - .8) / .9);
+  for (const ctx of [g, gg]) {                              /* 山顶的积雪 */
+    ctx.lineCap = 'round'; ctx.lineWidth = ctx === g ? 3.5 : 12;
+    for (let i = 1; i < pts.length; i++) {
+      const s = (pts[i][2] - hi * .74) / (hi * .26); if (s <= 0) continue;
+      ctx.strokeStyle = `rgba(250,252,255,${clamp(s * 1.6) * e * (ctx === g ? .78 : .45 + glint * .5)})`;
+      ctx.beginPath(); ctx.moveTo(pts[i - 1][0], pts[i - 1][1]); ctx.lineTo(pts[i][0], pts[i][1]); ctx.stroke();
+    }
+  }
+  G.peaks = pts.filter((p, i) => i > 0 && i < pts.length - 1 && p[2] > hi * .7 && p[2] >= pts[i - 1][2] && p[2] >= pts[i + 1][2]);
+  mistBand(y0 + 2, 55, .38 * e);
+  if (glint > 0) {
+    g.globalCompositeOperation = 'lighter';
+    for (const p of G.peaks) spr(g, SP.star, p[0], p[1], 40 * glint, glint);
+    g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
+  }
+}
+
+/* ================= 江河、田地、石头 ================= */
+const plainY = d => P.gY + 4 + Math.pow(d, 1.35) * 560;
+const plainX = (x, d) => x * (.55 + 1.05 * d);
+const RIVERS = [{x0:-250, ph:.3, am:1}, {x0:30, ph:2.1, am:.8}, {x0:290, ph:4.2, am:1.1}];
+function riverPts(rv, upto) {
+  const pts = [], n = Math.max(1, Math.floor(upto * 50));
+  for (let j = 0; j <= n; j++) {
+    const d = j / 50;
+    pts.push([rv.x0 * (1 + 1.3 * d) + Math.sin(d * 6.5 + rv.ph) * (12 + 190 * d) * rv.am, plainY(d), 3 + 40 * Math.pow(d, 1.2)]);
+  }
+  return pts;
+}
+function drawRivers() {
+  const r = P.rivers; if (r <= .003) return;
+  const red = 1 - sstep(.18, .6, r), water = mixc(mixc(PC.bg1, WHITE, .35), [230, 72, 60], red);
+  const boost = Math.max(0, 1 - Math.abs(T - G.glintW - .8) / 1);
+  for (const rv of RIVERS) {
+    const pts = riverPts(rv, r); if (pts.length < 2) continue;
+    ribbonW(g, pts, rgba(mulc(water, .55), .8), 1.25); ribbonW(g, pts, rgba(water, .9)); ribbonW(gg, pts, rgba(water, .45), 1.6);
+    g.globalCompositeOperation = 'lighter';
+    for (let j = 1; j < pts.length; j++) {
+      const s = Math.sin(j * 1.3 - T * 4 + rv.ph);
+      if (s > .6) spr(g, SP.white, pts[j][0] + Math.sin(j) * pts[j][2] * .2, pts[j][1], pts[j][2] * .5, (s - .6) * .55 * (1 + boost));
+    }
+    if (r < 1) { const h = pts[pts.length - 1]; spr(g, red > .5 ? SP.red : SP.blue, h[0], h[1], 22 + h[2], .6); }
+    g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+  }
+}
+const FIELDS = (() => {
+  const R = rng(55), a = [], rows = [[.05, .13], [.14, .24], [.25, .37], [.38, .52], [.53, .7]];
+  const cols = ['#6fa343', '#8cbc52', '#b4c25a', '#d8b957', '#7cae48'].map(hex);
+  rows.forEach(([d0, d1]) => { for (let x = -1000; x < 1000; x += 150) { if (R() < .22) continue; a.push({x0:x, x1:x + 110 + R() * 30, d0, d1, c:cols[Math.floor(R() * 5)], dl:R()}); } });
+  return a;
+})();
+function drawFields() {
+  const f = P.fields; if (f <= .003) return;
+  g.lineWidth = 1;
+  for (const c of FIELDS) {
+    const k = EASE.o(clamp((f - c.dl * .45) / .55)); if (k <= 0) continue;
+    const ya = plainY(c.d0), yb = plainY(c.d1), ins = .07, iy = (yb - ya) * ins;
+    const q = [[plainX(c.x0, c.d0), ya], [plainX(c.x1, c.d0), ya], [plainX(c.x1, c.d1), yb], [plainX(c.x0, c.d1), yb]];
+    const cx = (q[0][0] + q[1][0] + q[2][0] + q[3][0]) / 4, cy = (ya + yb) / 2;
+    const sc = lerp(.3, 1, k), pt = p => [cx + (lerp(p[0], cx, ins) - cx) * sc, cy + (p[1] + (p[1] < cy ? iy : -iy) - cy) * sc];
+    const col = mixc(mixc(c.c, PC.light, .12), PC.haze, .5 * (1 - (c.d0 + c.d1) / 1.4));
+    g.beginPath(); q.map(pt).forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath();
+    g.globalAlpha = .6 * k; g.fillStyle = rgba(col); g.fill();
+    g.globalAlpha = .2 * k; g.strokeStyle = rgba(mixc(col, WHITE, .5));
+    for (let j = 1; j < 4; j++) {
+      const t = j / 4, a = pt([lerp(q[0][0], q[3][0], t), lerp(ya, yb, t)]), b = pt([lerp(q[1][0], q[2][0], t), lerp(ya, yb, t)]);
+      g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.stroke();
+    }
+  }
+  g.globalAlpha = 1;
+}
+const STONES = (() => {
+  const R = rng(88), a = [];
+  for (let i = 0; i < 20; i++) {
+    const pts = [];
+    for (let j = 0; j < 7; j++) { const an = j / 7 * TAU, rr = .72 + R() * .3; pts.push([Math.cos(an) * rr, Math.sin(an) * rr * .62 - .35]); }
+    a.push({x:(R() * 2 - 1) * 820, d:.04 + R() * .62, s:.7 + R() * .7, pts, dl:R()});
+  }
+  return a.sort((p, q) => p.d - q.d);
+})();
+function drawStones() {
+  const s = P.stones; if (s <= .003) return;
+  const kl = keyLight();
+  for (const st of STONES) {
+    const k = clamp((s - st.dl * .5) / .5); if (k <= 0) continue;
+    const sc = (12 + 58 * st.d) * st.s, x = plainX(st.x, st.d), y = plainY(st.d), side = kl[0] < x ? -1 : 1;
+    g.save(); g.translate(x, y);
+    g.globalAlpha = .35 * k; g.fillStyle = '#000'; g.beginPath(); g.ellipse(-side * sc * .35, 0, sc * 1.1, sc * .18, 0, 0, TAU); g.fill();
+    g.scale(sc, sc * EASE.back(k));
+    g.beginPath(); st.pts.forEach((p, j) => j ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath();
+    const gr = g.createLinearGradient(side * .9, -1, -side * .9, .3);
+    gr.addColorStop(0, rgba(mixc([220, 222, 226], PC.light, .25))); gr.addColorStop(1, rgba(mixc([80, 84, 92], PC.amb, .2)));
+    g.globalAlpha = .95 * clamp(k * 3); g.fillStyle = gr; g.fill();
+    g.restore();
+  }
+  g.globalAlpha = 1;
+}
+function drawNight() {                                      /* 夜里大地也暗一点 */
+  const k = P.land * clamp(P.wheel) * (1 - G.day) * .45; if (k <= .005) return;
+  const gr = g.createLinearGradient(0, P.gY - 380, 0, P.gY + 40);
+  gr.addColorStop(0, 'rgba(4,6,18,0)'); gr.addColorStop(1, `rgba(4,6,18,${k})`);
+  g.fillStyle = gr; g.fillRect(VIEW.l - 60, P.gY - 380, VIEW.r - VIEW.l + 120, 420);
+  g.fillStyle = `rgba(4,6,18,${k})`; g.fillRect(VIEW.l - 60, P.gY + 40, VIEW.r - VIEW.l + 120, VIEW.b - P.gY + 60);
+}
+
+/* ================= 纪录片式的图示 ================= */
+const GHOSTS = [{zh:'太阳', en:'NO SUN', c:[-330, -250]}, {zh:'月亮', en:'NO MOON', c:[330, -250]}, {zh:'山', en:'NO MOUNTAINS', c:[-260, 170]}, {zh:'水', en:'NO WATER', c:[260, 190]}];
+function drawGhosts() {
+  for (let i = 0; i < 4; i++) {
+    const t0 = G.ghosts[i]; if (t0 == null) continue;
+    const age = T - t0; if (age < 0 || age > 3) continue;
+    const A = .92 * clamp(age / .4) * (1 - sstep(2, 3, age)), gh = GHOSTS[i];
+    g.save(); g.translate(gh.c[0], gh.c[1]);
+    g.strokeStyle = `rgba(255,255,255,${A})`; g.lineWidth = 2.4; g.lineCap = g.lineJoin = 'round';
+    g.beginPath();
+    if (i === 0) { g.arc(0, 0, 40, 0, TAU); for (let j = 0; j < 8; j++) { const an = j / 8 * TAU; g.moveTo(Math.cos(an) * 54, Math.sin(an) * 54); g.lineTo(Math.cos(an) * 72, Math.sin(an) * 72); } }
+    else if (i === 1) { g.arc(0, 0, 46, .7, TAU - .7); g.moveTo(Math.cos(TAU - .7) * 46, Math.sin(TAU - .7) * 46); g.arc(22, 0, 38, TAU - 1.25, 1.25, true); }
+    else if (i === 2) { g.moveTo(-90, 40); g.lineTo(-45, -30); g.lineTo(-15, 5); g.lineTo(25, -55); g.lineTo(90, 40); }
+    else { for (let r = 0; r < 3; r++) for (let x = -80; x <= 80; x += 8) { const y = -22 + r * 22 + Math.sin(x * .07 + age * 3 + r) * 7; x === -80 ? g.moveTo(x, y) : g.lineTo(x, y); } }
+    g.stroke();
+    const s = clamp((age - .75) / .35);                     /* 划掉: 没有 */
+    if (s > 0) { g.strokeStyle = `rgba(232,178,90,${A})`; g.lineWidth = 3.4; g.beginPath(); g.moveTo(-70, 58); g.lineTo(-70 + 140 * s, 58 - 116 * s); g.stroke(); }
+    g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.shadowColor = 'rgba(0,0,0,.6)'; g.shadowBlur = 8;
+    g.fillStyle = `rgba(255,255,255,${A})`; g.font = '700 36px "Noto Sans SC","Microsoft YaHei",sans-serif'; g.fillText(gh.zh, 0, 116);
+    g.fillStyle = `rgba(232,178,90,${A})`; g.font = '600 18px Montserrat,Arial,sans-serif'; g.fillText(gh.en, 0, 144);
+    g.shadowBlur = 0; g.restore();
+  }
+}
+const STAR_CALL = (() => { let b = STARS[100], bd = 9; for (let i = 90; i < STARS.length; i++) { const s = STARS[i], d = Math.hypot(s.u - .62, s.v - .28) - s.s * .02; if (d < bd) { bd = d; b = s; } } return b; })();
+function calloutAnchor(at) {
+  if (at === 'sun') return skyBodyPos('sun');
+  if (at === 'moon') return skyBodyPos('moon');
+  if (at === 'stars') return starPos(STAR_CALL);
+  if (at === 'clouds') {                                   /* 选一朵离太阳远、在画面里的云 */
+    const sun = skyBodyPos('sun'); let b = null, bd = -1;
+    for (const c of G.cloudPos) { if (!c || c[0] < VIEW.l + 150 || c[0] > VIEW.r - 150) continue; const d = Math.abs(c[0] - sun[0]); if (d > bd) { bd = d; b = c; } }
+    return b;
+  }
+  if (at === 'rivers') { const p = riverPts(RIVERS[1], Math.min(1, Math.max(.3, P.rivers))); return p[Math.min(p.length - 1, 13)]; }
+  if (at === 'fields') return [plainX(-430, .3), plainY(.3)];
+  if (at === 'stones') { const s = STONES[12]; return [plainX(s.x, s.d), plainY(s.d) - 10]; }
+  if (at === 'mtn') { let b = null; for (const p of G.peaks || []) if (!b || p[2] > b[2]) b = p; return b ? [b[0], b[1]] : [0, P.gY - 200]; }
+  return null;
+}
+function drawCallout() {                                    /* "左眼 → 太阳" 这样的注释 (屏幕坐标) */
+  const c = G.call; if (!c) return;
+  const age = T - G.callT, A = sstep(.6, 1.1, age) * (1 - sstep(5.4, 6.2, age)); if (A <= .01) return;
+  const pos = calloutAnchor(c.at); if (!pos) return;
+  const [sx, sy] = toScreen(pos[0], pos[1]), u = DPR * clamp(Math.min(W, H) / 700, .75, 1.3);
+  const dx = sx > cv.width * .55 ? -1 : 1, dy = sy < cv.height * .22 ? 1 : -1;
+  const lx = sx + dx * 64 * u, ly = sy + dy * 50 * u, ex = lx + dx * 34 * u, k = clamp((age - .6) / .5);
+  g.setTransform(1, 0, 0, 1, 0, 0); g.lineCap = 'round';
+  g.shadowColor = 'rgba(0,0,0,.55)'; g.shadowBlur = 6 * DPR;
+  g.strokeStyle = `rgba(255,255,255,${.95 * A})`; g.lineWidth = 1.6 * u;
+  g.beginPath(); g.arc(sx, sy, 11 * u, 0, TAU); g.stroke();
+  g.beginPath(); g.moveTo(sx + dx * 8 * u, sy + dy * 8 * u); g.lineTo(lerp(sx + dx * 8 * u, lx, k), lerp(sy + dy * 8 * u, ly, k));
+  if (k >= 1) g.lineTo(ex, ly);
+  g.stroke();
+  if (k >= 1) {
+    g.textAlign = dx > 0 ? 'left' : 'right'; g.textBaseline = 'middle';
+    g.fillStyle = `rgba(255,255,255,${A})`; g.font = `700 ${Math.round(20 * u)}px "Noto Sans SC","Microsoft YaHei",sans-serif`;
+    g.fillText(c.zh, ex + dx * 10 * u, ly - 9 * u);
+    g.fillStyle = `rgba(232,178,90,${A})`; g.font = `600 ${Math.round(10.5 * u)}px Montserrat,Arial,sans-serif`;
+    g.fillText(c.en, ex + dx * 10 * u, ly + 12 * u);
+  }
+  g.shadowBlur = 0;
+}
+function drawDust() {                                       /* 倒下时扬起的尘土 */
+  const age = T - G.dustT; if (age < 0 || age > 4.5 || !G.bodyCircles.length) return;
+  const A = 1 - age / 4.5, cs = G.bodyCircles, dust = tintFog(mixc([150, 112, 82], PC.haze, .4));
+  for (let i = 0; i < 28; i++) {
+    const c = cs[(i * 5) % cs.length], x = c[0] + (hash(i) - .5) * 80 + (hash(i + 3) - .5) * age * 160;
+    const y = P.gY - 10 - age * (18 + hash(i + 7) * 46);
+    spr(g, dust, x, y, 50 + age * 60 * (.6 + hash(i)), .2 * A);
+  }
+  g.globalAlpha = 1;
+}
+
+/* ================= 盘古: 2D 骨架与姿势 =================
+   角度以"朝上 = 0、顺时针为正"; 四肢角度相对躯干方向。turn: 0 正面 → 1 侧面(脸朝右)。
+   px/py: 在蛋里时骨盆相对蛋心的位置 (单位: 身高) */
+const PDEF = {rot:0, neck:0, head:0, sR:2.95, eR:.1, sL:3.33, eL:-.1, hR:3.04, kR:.05, hL:3.24, kL:-.05,
+  turn:0, px:0, py:0, lx:0, ly:0, ax:1.1, axs:1};
+const PKEYS = Object.keys(PDEF);
+const POSES = {};
+const mir = p => Object.assign(p, {sL:TAU - p.sR, eL:-p.eR, hL:TAU - p.hR, kL:-p.kR});
+function defPose(name, p) { POSES[name] = Object.assign({}, PDEF, p); }
+defPose('curl',      {rot:.45, neck:.4, head:.1, sR:2.3, eR:-1.5, sL:2.1, eL:-1.4, hR:.95, kR:2.3, hL:1.05, kL:2.2, turn:1, px:-.15, py:.12, ly:.3});
+defPose('curlAwake', {rot:.4, neck:.3, head:.05, sR:2.3, eR:-1.5, sL:2.1, eL:-1.4, hR:.95, kR:2.3, hL:1.05, kL:2.2, turn:.9, px:-.15, py:.12});
+defPose('reach',     {rot:.3, neck:.2, head:0, sR:1.45, eR:-.15, sL:2.2, eL:-1.3, hR:1, kR:2.2, hL:1.1, kL:2.1, turn:.85, px:-.18, py:.13, lx:1});
+defPose('pushUp',    {rot:.05, neck:.1, head:-.1, sR:2.6, eR:-.4, sL:2.5, eL:-.3, hR:1.35, kR:2, hL:1.5, kL:1.9, turn:.6, px:-.1, py:.1, ly:-1});
+defPose('kick',      {rot:-.3, neck:.35, head:.1, sR:3.5, eR:.3, sL:3.4, eL:.2, hR:1.25, kR:.3, hL:1.4, kL:.4, turn:.9, px:-.1, py:.15, lx:1, ly:.5});
+defPose('angry',     {rot:.12, neck:.05, sR:1.3, eR:-1.7, sL:1.1, eL:-1.5, hR:1.78, kR:2, hL:1.9, kL:1.9, turn:.7, px:-.1, py:.12, lx:.5});
+defPose('grab',      {rot:.3, neck:.3, head:.1, sR:2.05, eR:-.35, sL:1.5, eL:-1.2, hR:1.6, kR:2.1, hL:1.75, kL:2, turn:.7, px:-.14, py:.12, lx:1, ly:1, ax:-2.05});
+defPose('windup',    {rot:-.15, neck:-.1, head:-.1, sR:-.2, eR:-.9, sL:.9, eL:-1.3, hR:1.9, kR:2, hL:2, kL:1.9, turn:.7, px:.03, py:.11, lx:.8, ly:-1, ax:-2.2});
+defPose('strike',    {rot:.3, neck:.1, sR:.2, eR:.55, sL:1.4, eL:-1.3, hR:1.5, kR:2.2, hL:1.65, kL:2.1, turn:.7, px:-.2, py:.15, lx:1, ly:-.8, ax:.35});
+defPose('crouchUp',  mir({sR:2.3, eR:-.7, hR:2.3, kR:1, turn:.2, py:.08, ly:-1}));
+defPose('crouchDown',mir({sR:2.3, eR:-.7, hR:2.3, kR:1, turn:.2, py:.08, ly:1}));
+defPose('joy',       mir({sR:.8, eR:-.3, hR:2.95, kR:.06}));
+defPose('worry',     mir({sR:1.2, eR:-1.9, hR:2.55, kR:.85, ly:-1}));
+defPose('hold',      mir({sR:.95, eR:-.95, hR:2.75, kR:.28, ly:-.6}));
+defPose('tired',     mir({sR:1.6, eR:-1.15, hR:2.72, kR:.5, head:.12, ly:.6}));
+defPose('kneel',     {rot:.15, neck:.4, head:.2, sR:2.9, eR:.2, sL:3, eL:.1, hR:2.69, kR:1.87, hL:2.6, kL:1.9, turn:.75, ly:.8});
+defPose('lie',       {rot:-PI / 2, head:-.1, sR:3, eR:.1, sL:3.25, eL:0, hR:2.89, kR:.5, hL:3.1, kL:.05, turn:.55, ly:-.4});
+
+const POSE = {now:Object.assign({}, POSES.curl), q:[], act:null, name:'curl'};
+function poseTo(name, dur, delay = 0, ease = 'io') {
+  if (!POSES[name]) return;
+  POSE.q.push({name, t0:T + delay, d:Math.max(.01, dur), e:EASE[ease] || EASE.io});
+  POSE.q.sort((a, b) => a.t0 - b.t0);
+}
+function poseFlush() { if (!POSE.q.length) return; const last = POSE.q[POSE.q.length - 1]; POSE.q = []; poseTo(last.name, .6); }
+function poseSet(name) { POSE.q = []; POSE.act = null; POSE.name = name; Object.assign(POSE.now, POSES[name]); }
+function poseTick() {
+  while (POSE.q.length && T >= POSE.q[0].t0) { const q = POSE.q.shift(); q.from = Object.assign({}, POSE.now); POSE.act = q; POSE.name = q.name; }
+  const A = POSE.act;
+  if (A) {
+    const t = clamp((T - A.t0) / A.d), e = A.e(t), to = POSES[A.name];
+    for (const k of PKEYS) POSE.now[k] = lerp(A.from[k], to[k], e);
+    if (t >= 1) POSE.act = null;
+  }
+}
+function poseMods(p) {
+  const q = Object.assign({}, p), br = P.breathe * (P.pgMode < .5 ? 1 : .3);
+  q.rot += Math.sin(T * 1.1) * .02 * br; q.neck += Math.sin(T * 1.1 + .6) * .03 * br;
+  if (G.fx === 'tremble') { const k = .035; q.rot += Math.sin(T * 41) * k; q.sR += Math.sin(T * 37 + 1) * k * 1.5; q.sL += Math.sin(T * 43 + 2) * k * 1.5; q.neck += Math.sin(T * 29) * k; }
+  if (G.fx === 'look') { q.lx = Math.sin(T * 1.7) * 1.2; q.ly = Math.cos(T * 1.1) * .3; }
+  if (POSE.name === 'tired') { q.sR += Math.sin(T * 2.3) * .05; q.sL -= Math.sin(T * 2.3 + .4) * .05; }
+  if (POSE.name === 'hold') { q.sR += Math.sin(T * 9) * .006; q.sL -= Math.sin(T * 9) * .006; }
+  return q;
+}
+const BN = {LT:.30, LN:.05, HO:.058, SW:.10, SD:.03, UA:.165, FA:.15, HW:.055, TH:.235, SH:.225};
+function skel(p, H, px, py) {
+  const ph = p.turn * PI / 2, cw = Math.cos(ph), sw = Math.abs(Math.sin(ph)), rot = p.rot, perp = rot + PI / 2;
+  const J = {H, p, cw, sw};
+  J.pel = [px, py];
+  J.chest = along(J.pel, rot, BN.LT * H);
+  J.nd = rot + p.neck; J.neck = along(J.chest, J.nd, BN.LN * H);
+  J.hd = J.nd + p.head; J.head = along(J.neck, J.hd, BN.HO * H);
+  const sc = along(J.chest, rot, -BN.SD * H);
+  J.shR = along(sc, perp, BN.SW * H * cw); J.shL = along(sc, perp, -BN.SW * H * cw);
+  J.uR = rot + p.sR; J.uL = rot + p.sL;
+  J.elR = along(J.shR, J.uR, BN.UA * H); J.elL = along(J.shL, J.uL, BN.UA * H);
+  J.fR = J.uR + p.eR; J.fL = J.uL + p.eL;
+  J.haR = along(J.elR, J.fR, BN.FA * H); J.haL = along(J.elL, J.fL, BN.FA * H);
+  J.hiR = along(J.pel, perp, BN.HW * H * cw); J.hiL = along(J.pel, perp, -BN.HW * H * cw);
+  J.tR = rot + p.hR; J.tL = rot + p.hL;
+  J.knR = along(J.hiR, J.tR, BN.TH * H); J.knL = along(J.hiL, J.tL, BN.TH * H);
+  J.sR = J.tR + p.kR; J.sL = J.tL + p.kL;
+  J.anR = along(J.knR, J.sR, BN.SH * H); J.anL = along(J.knL, J.sL, BN.SH * H);
+  const fl = .065 * H * (.45 + .55 * sw);
+  J.toR = along(J.anR, J.sR - 1.4, fl); J.toL = along(J.anL, J.sL + lerp(1.4, -1.4, sw), fl);
+  return J;
+}
+function extent(J) {
+  const H = J.H;
+  const pts = [[J.anR,.03],[J.anL,.03],[J.toR,.024],[J.toL,.024],[J.knR,.045],[J.knL,.045],[J.haR,.033],[J.haL,.033],
+    [J.elR,.036],[J.elL,.036],[J.pel,.085],[J.chest,.108],[J.head,.075],[J.shR,.052],[J.shL,.052]];
+  let lo = -1e9, hi = 1e9;
+  for (const [q, r] of pts) { lo = Math.max(lo, q[1] + r * H); hi = Math.min(hi, q[1] - r * H); }
+  return {lo, hi};
+}
+function panguUpdate() {
+  const p = poseMods(POSE.now), H = P.pgH * (1 + .012 * Math.sin(T * 1.1) * P.breathe * (P.pgMode < .5 ? 1 : 0));
+  const eggP = [EGG.x + p.px * H + G.jx, EGG.y + p.py * H + G.jy];
+  let pel = eggP;
+  const m = EASE.io(clamp(P.pgMode));
+  if (m > 0) { const ex0 = extent(skel(p, H, p.px * H, 0)); pel = [lerp(eggP[0], p.px * H, m), lerp(eggP[1], P.gY - ex0.lo, m)]; }
+  const J = skel(p, H, pel[0], pel[1]);
+  G.J = J; G.pose = p; G.pgTop = extent(J).hi; G.head = J.head; G.pel = J.pel;
+  G.skyEff = (P.pgMode > .5 ? Math.min(P.skyY, G.pgTop - 3) : P.skyY) + (G.fx === 'quake' ? Math.sin(T * 23) * 3 : 0);
+}
+function capsule(path, a, ra, b, rb, circles) {
+  const dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy);
+  if (d < 1e-3) { const r = Math.max(ra, rb); path.moveTo(a[0] + r, a[1]); path.arc(a[0], a[1], r, 0, TAU); }
+  else {
+    const an = Math.atan2(dy, dx), off = Math.acos(clamp((ra - rb) / d, -1, 1));
+    path.moveTo(a[0] + Math.cos(an + off) * ra, a[1] + Math.sin(an + off) * ra);
+    path.arc(a[0], a[1], ra, an + off, an + TAU - off);
+    path.arc(b[0], b[1], rb, an - off, an + off);
+    path.closePath();
+  }
+  if (circles) for (let i = 0; i <= 4; i++) { const t = i / 4; circles.push([lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(ra, rb, t)]); }
+}
+function disc(path, c, r, circles) { path.moveTo(c[0] + r, c[1]); path.arc(c[0], c[1], r, 0, TAU); if (circles) circles.push([c[0], c[1], r]); }
+const angTo = (a, b, t) => a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) * t;
+function curvePts(c, w0, w1, n = 10) {
+  const pts = [];
+  for (let i = 0; i <= n; i++) { const t = i / n, q = bez3(c[0], c[1], c[2], c[3], t); pts.push([q[0], q[1], lerp(w0, w1, t)]); }
+  return pts;
+}
+function headXf(J) { const cs = Math.cos(J.hd), sn = Math.sin(J.hd), hc = J.head; return (x, y) => [hc[0] + x * cs - y * sn, hc[1] + x * sn + y * cs]; }
+const eyeLocal = J => { const H = J.H, fc = .03 * H * J.sw; return [[.027 * H * J.cw + fc, -.004 * H], [-.027 * H * J.cw + fc, -.004 * H]]; };
+function hairStrands(J, grav) {
+  const H = J.H, sw = J.sw, hd = J.hd, out = [];
+  for (let i = 0; i < 9; i++) {
+    const f = i / 8, b0 = lerp(-1.75, 1.75, f), ra = hd + b0 * (1 - .3 * sw) - sw * .95;
+    const root = along(J.head, ra, .066 * H), L = (.2 + .28 * Math.abs(f - .5)) * H;
+    const fd = angTo(hd + PI + sw * .8 + b0 * .3, PI + b0 * .25 - sw * .4, grav);
+    const p1 = along(root, ra, L * .12), p2 = along(p1, fd, L * .45), p3 = along(p2, fd + Math.sin(i * 2.1) * .3, L * .43);
+    p2[0] += Math.sin(T * 1.3 + i * .9) * .025 * H; p3[0] += Math.sin(T * 1.1 + i * 1.7 + 1) * .04 * H;
+    if (P.pgMode > .5) for (const q of [p1, p2, p3]) q[1] = Math.min(q[1], P.gY - 3);
+    out.push([root, p1, p2, p3]);
+  }
+  return out;
+}
+function beardStrands(J, grav) {
+  const H = J.H, cw = J.cw, sw = J.sw, fc = .03 * H * sw, toW = headXf(J), d = angTo(J.hd + PI, PI, grav), out = [];
+  for (let j = 0; j < 6; j++) {
+    const f = j / 5, m = 1 - Math.abs(f * 2 - 1);
+    const root = toW(fc + (f * 2 - 1) * .034 * H * cw + .01 * H * sw, (.038 + .012 * m) * H), L = .15 * H * (.8 + .4 * m);
+    const p1 = along(root, d + (f - .5) * .5, L * .35), p2 = along(p1, d + Math.sin(T * 1.2 + j * 1.3) * .12, L * .35);
+    const p3 = along(p2, d + Math.sin(T * 1.05 + j * 2.1 + 1) * .2 + (f - .5) * .3, L * .3);
+    if (P.pgMode > .5) for (const q of [p1, p2, p3]) q[1] = Math.min(q[1], P.gY - 3);
+    out.push([root, p1, p2, p3]);
+  }
+  return out;
+}
+function drawEyes(J, o, bright) {
+  const H = J.H, e = o.eyes, E = eyeLocal(J), white = mixc([255, 250, 238], PC.amb, .18 * clamp(P.pgLit));
+  g.save(); g.translate(J.head[0], J.head[1]); g.rotate(J.hd); g.lineCap = 'round';
+  for (let i = 0; i < 2; i++) {
+    if (i === 1 && J.cw < .25) continue;
+    if ((i === 0 && P.sun > .04) || (i === 1 && P.moon > .04)) continue;
+    const [x, y] = E[i];
+    if (e < .75 && !bright) {
+      g.globalAlpha = o.alpha * (1 - e / .75); g.strokeStyle = '#3a1a08'; g.lineWidth = .0065 * H;
+      g.beginPath(); g.arc(x, y - .007 * H, .012 * H, .2 * PI, .8 * PI); g.stroke();
+    }
+    if (e > .05) {
+      g.globalAlpha = o.alpha * clamp(e * 1.5);
+      g.fillStyle = rgba(white); g.beginPath(); g.ellipse(x, y, .0135 * H, .0105 * H * e, 0, 0, TAU); g.fill();
+      const px = x + o.lx * .005 * H, py = y + o.ly * .0045 * H * e;
+      g.fillStyle = '#23120a'; g.beginPath(); g.arc(px, py, .0068 * H * Math.min(1, e * 1.3), 0, TAU); g.fill();
+      g.fillStyle = '#FFFFFF'; g.beginPath(); g.arc(px + .003 * H, py - .003 * H, .0022 * H, 0, TAU); g.fill();
+    }
+  }
+  g.restore(); g.globalAlpha = 1;
+}
+function drawFace(J, o) {
+  const H = J.H, cw = J.cw, sw = J.sw, fc = .03 * H * sw, E = eyeLocal(J);
+  g.save(); g.translate(J.head[0], J.head[1]); g.rotate(J.hd);
+  g.lineCap = 'round'; g.strokeStyle = '#3a1a08'; g.lineWidth = .0085 * H; g.globalAlpha = o.alpha;
+  for (let i = 0; i < 2; i++) {
+    if (i === 1 && cw < .25) continue;
+    const x = E[i][0], side = i === 0 ? 1 : -1;
+    g.beginPath(); g.moveTo(x - side * .015 * H, -.031 * H - .009 * H * o.brow); g.lineTo(x + side * .016 * H, -.033 * H + .004 * H * o.brow); g.stroke();
+  }
+  g.lineWidth = .005 * H; g.globalAlpha = .5 * o.alpha;
+  g.beginPath(); g.moveTo(fc + .002 * H, 0); g.quadraticCurveTo(fc + .01 * H * sw + .006 * H, .012 * H, fc + .002 * H, .016 * H); g.stroke();
+  g.globalAlpha = o.alpha;
+  if (Math.abs(o.smile) > .05) {
+    g.lineWidth = .0055 * H; g.globalAlpha = Math.min(1, Math.abs(o.smile)) * o.alpha; g.beginPath();
+    if (o.smile > 0) g.arc(fc + .004 * H * sw, .022 * H, .013 * H, .2 * PI, .8 * PI);
+    else g.arc(fc + .004 * H * sw, .044 * H, .012 * H, 1.2 * PI, 1.8 * PI);
+    g.stroke();
+  }
+  g.restore(); g.globalAlpha = 1;
+}
+function drawLeaves(J, lit, A) {
+  const H = J.H, b0 = along(J.hiL, J.p.rot, .035 * H), b1 = along(J.hiR, J.p.rot, .035 * H);
+  const cols = [[63, 122, 58], [92, 154, 69], [47, 106, 51]].map(c => mixc(c, mulc(PC.amb, .6), .35 * lit));
+  g.globalAlpha = A;
+  for (let j = 0; j < 7; j++) {
+    const f = j / 6, b = [lerp(b0[0], b1[0], f), lerp(b0[1], b1[1], f)], d = angTo(J.tL, J.tR, f) + (f - .5) * .25;
+    const tip = along(b, d, .14 * H), mid = along(b, d, .07 * H), nx = Math.cos(d) * .03 * H, ny = Math.sin(d) * .03 * H;
+    g.beginPath(); g.moveTo(b[0], b[1]); g.quadraticCurveTo(mid[0] + nx, mid[1] + ny, tip[0], tip[1]);
+    g.quadraticCurveTo(mid[0] - nx, mid[1] - ny, b[0], b[1]); g.fillStyle = rgba(cols[j % 3]); g.fill();
+  }
+}
+function axeGeo(J) {
+  const H = J.H, hand = J.haR, d = J.fR + J.p.ax, s = J.p.axs >= 0 ? 1 : -1, k = .64 * H;
+  const at = (u, v) => [hand[0] + Math.sin(d) * u * k + Math.cos(d) * v * k * s, hand[1] - Math.cos(d) * u * k + Math.sin(d) * v * k * s];
+  return {at, a0:at(-.07, 0), a1:at(.37, 0), tip:at(.33, .19)};
+}
+function drawAxe(J, a) {
+  const H = J.H, X = axeGeo(J), at = X.at;
+  g.globalAlpha = a; g.lineCap = 'round'; g.strokeStyle = '#6A4220'; g.lineWidth = .02 * H;
+  g.beginPath(); g.moveTo(X.a0[0], X.a0[1]); g.lineTo(X.a1[0], X.a1[1]); g.stroke();
+  const blade = ctx => {
+    const q = [[.28, -.03], [.36, -.03], [.37, .03], [.44, .1]].map(v => at(v[0], v[1]));
+    ctx.beginPath(); ctx.moveTo(q[0][0], q[0][1]); for (let i = 1; i < 4; i++) ctx.lineTo(q[i][0], q[i][1]);
+    const c = at(.34, .25), e = at(.22, .13), r1 = at(.25, .07), r2 = at(.27, .03);
+    ctx.quadraticCurveTo(c[0], c[1], e[0], e[1]); ctx.lineTo(r1[0], r1[1]); ctx.lineTo(r2[0], r2[1]); ctx.closePath();
+  };
+  blade(g);
+  const gr = g.createLinearGradient(X.a1[0], X.a1[1], X.tip[0], X.tip[1]);
+  gr.addColorStop(0, '#6F7F98'); gr.addColorStop(1, '#EEF3FA');
+  g.fillStyle = gr; g.fill(); g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = .004 * H; g.stroke();
+  blade(gg); gg.globalAlpha = a * .7; gg.fillStyle = '#AFCBFF'; gg.fill(); gg.globalAlpha = 1;
+  g.globalAlpha = 1;
+  return X.tip;
+}
+
+function drawPangu() {
+  const J = G.J; if (!J) return;
+  const H = J.H, p = G.pose, grav = P.hairGrav;
+  const A = clamp(P.eggIn + P.pgMode) * (1 - P.bodyFade);
+  const o = {alpha:A, eyes:P.eyes, brow:P.brow, smile:P.smile, lx:p.lx, ly:p.ly};
+  const hair = hairStrands(J, grav), beard = beardStrands(J, grav);
+  G.hairPts = [];
+  for (const c of hair.concat(beard)) for (const t of [.45, .75, 1]) G.hairPts.push(bez3(c[0], c[1], c[2], c[3], t));
+  const toW = headXf(J), E = eyeLocal(J);
+  G.eyeA = toW(E[0][0], E[0][1]); G.eyeB = toW(E[1][0], E[1][1]); G.mouth = toW(.035 * H * J.sw, .03 * H);
+  const circles = [], far = new Path2D(), core = new Path2D(), nLeg = new Path2D(), nArm = new Path2D();
+  const limbs = (s, leg, arm) => {
+    capsule(leg, J['hi' + s], .062 * H, J['kn' + s], .045 * H, circles);
+    capsule(leg, J['kn' + s], .044 * H, J['an' + s], .031 * H, circles);
+    capsule(leg, J['an' + s], .03 * H, J['to' + s], .024 * H, circles);
+    capsule(arm, J['sh' + s], .047 * H, J['el' + s], .036 * H, circles);
+    capsule(arm, J['el' + s], .035 * H, J['ha' + s], .028 * H, circles);
+    disc(arm, J['ha' + s], .033 * H, circles);
+  };
+  limbs('L', far, far);
+  capsule(core, J.pel, lerp(.07, .085, J.cw) * H, J.chest, lerp(.08, .108, J.cw) * H, circles);
+  disc(core, J.shR, .052 * H, circles); disc(core, J.shL, .052 * H, circles);
+  capsule(core, J.chest, .04 * H, J.neck, .037 * H, circles);
+  disc(core, J.head, .068 * H, circles);
+  limbs('R', nLeg, nArm);
+  G.bodyCircles = circles;
+  if (A <= .005) return;
+
+  const lit = clamp(P.pgLit), glowK = 1 - lit, kl = keyLight();
+  let ldx = kl[0] - J.chest[0], ldy = kl[1] - J.chest[1]; const ld = Math.hypot(ldx, ldy) || 1; ldx /= ld; ldy /= ld;
+  const hairCol = mixc(mixc([96, 54, 26], [36, 24, 16], lit), [255, 244, 214], sstep(0, .35, P.hairFly));
+  const hairA = A * (1 - sstep(.1, .8, P.hairFly));
+  if (P.pgMode > .5 && lit > .05 && POSE.name !== 'lie') {        /* 脚下的影子 */
+    sprE(g, FOG.shade, (J.anR[0] + J.anL[0]) / 2, P.gY + 3, .45 * H, .055 * H, 0, .5 * A * lit);
+  }
+  const glowG = g.createRadialGradient(J.chest[0], J.chest[1], H * .02, J.chest[0], J.chest[1], H * .75);
+  glowG.addColorStop(0, '#FFD89A'); glowG.addColorStop(.3, '#EDA04C'); glowG.addColorStop(.65, '#C66A24'); glowG.addColorStop(1, '#8E4214');
+  const amb = PC.amb, lc = PC.light;
+  const litG = g.createLinearGradient(J.chest[0] + ldx * .5 * H, J.chest[1] + ldy * .5 * H, J.chest[0] - ldx * .5 * H, J.chest[1] - ldy * .5 * H);
+  litG.addColorStop(0, rgba(mixc(amb, lc, .62))); litG.addColorStop(.45, rgba(amb)); litG.addColorStop(1, rgba(mulc(amb, .38)));
+  const paint = path => {
+    g.globalAlpha = A; g.fillStyle = litG; g.fill(path);
+    if (glowK > .01) { g.globalAlpha = A * glowK; g.fillStyle = glowG; g.fill(path); }
+    g.globalAlpha = A;
+  };
+  const lumK = clamp(.35 + P.pgGlow * 1.1);
+  const shadeOver = path => { if (lumK < .995 && glowK > .01) { g.fillStyle = `rgba(16,6,0,${(1 - lumK) * .95 * glowK})`; g.fill(path); } };
+  const layered = J.sw > .45;
+  g.save(); g.lineJoin = 'round';
+  if (hairA > .005) for (const c of hair) ribbonW(g, curvePts(c, .03 * H, .004 * H), rgba(hairCol, .95 * hairA));
+  g.globalAlpha = A; g.lineWidth = .014 * H * (.55 + .45 * glowK); g.strokeStyle = rgba(mixc([16, 9, 5], [92, 38, 8], glowK), .72);
+  if (!layered) { g.stroke(far); g.stroke(core); g.stroke(nLeg); g.stroke(nArm); }
+  if (layered) g.stroke(far);
+  paint(far); g.fillStyle = 'rgba(40,16,4,.3)'; g.fill(far); shadeOver(far);
+  if (layered) g.stroke(core);
+  paint(core); shadeOver(core);
+  drawLeaves(J, lit, A);
+  g.globalAlpha = A;
+  if (layered) g.stroke(nLeg);
+  paint(nLeg); shadeOver(nLeg);
+  if (hairA > .005) {                                        /* 发际 */
+    const s = -J.sw * .75, a0 = J.hd - 1.45 + s - PI / 2, a1 = J.hd + 1.45 + s - PI / 2, hc = J.head;
+    g.beginPath(); g.arc(hc[0], hc[1], .071 * H, a0, a1);
+    for (let i = 8; i >= 0; i--) { const f = i / 8, an = lerp(a0, a1, f), rr = (.052 + .01 * Math.sin(f * PI * 5)) * H; g.lineTo(hc[0] + Math.cos(an) * rr, hc[1] + Math.sin(an) * rr); }
+    g.closePath(); g.globalAlpha = 1; g.fillStyle = rgba(hairCol, .96 * hairA); g.fill();
+  }
+  drawFace(J, o);
+  drawEyes(J, o, false);
+  if (hairA > .005) {
+    g.globalAlpha = 1;
+    for (const c of beard) ribbonW(g, curvePts(c, .022 * H, .003 * H), rgba(hairCol, .92 * hairA));
+    const m0 = toW(.03 * H * J.sw, .021 * H);
+    for (const sd of [1, -1]) {
+      if (sd < 0 && J.cw < .25) continue;
+      const m1 = toW(.03 * H * J.sw + sd * .03 * H * J.cw + .008 * H * J.sw, .037 * H);
+      g.strokeStyle = rgba(hairCol, .92 * hairA); g.lineWidth = .009 * H; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(m0[0], m0[1]); g.quadraticCurveTo(lerp(m0[0], m1[0], .6), m0[1] - .002 * H, m1[0], m1[1]); g.stroke();
+    }
+  }
+  g.globalAlpha = A; g.lineWidth = .014 * H * (.55 + .45 * glowK); g.strokeStyle = rgba(mixc([16, 9, 5], [92, 38, 8], glowK), .72);
+  if (layered) g.stroke(nArm);
+  paint(nArm); shadeOver(nArm);
+  if (P.axe > .01) { const tip = drawAxe(J, A * P.axe); G.trail.push([tip[0], tip[1], T]); }
+  while (G.trail.length && T - G.trail[0][2] > .3) G.trail.shift();
+  g.restore(); g.globalAlpha = 1;
+
+  if (lit > .02) {                                           /* 轮廓光: 朝向光源的一侧亮起来 */
+    rx.setTransform(1, 0, 0, 1, 0, 0); rx.clearRect(0, 0, rcv.width, rcv.height); setWorld(rx, DPR * RS);
+    rx.fillStyle = rgba(mixc(lc, WHITE, .15)); const d = .017 * H, all = [far, core, nLeg, nArm];
+    for (const path of all) rx.fill(path);                  /* 只沿整个身体的外轮廓 */
+    rx.globalCompositeOperation = 'destination-out'; rx.save(); rx.translate(-ldx * d, -ldy * d);
+    for (const path of all) rx.fill(path);
+    rx.restore(); rx.globalCompositeOperation = 'source-over';
+    g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'lighter'; g.globalAlpha = .7 * lit * A;
+    g.drawImage(rcv, 0, 0, cv.width, cv.height); g.restore();
+    gg.save(); gg.setTransform(1, 0, 0, 1, 0, 0); gg.globalCompositeOperation = 'lighter'; gg.globalAlpha = .55 * lit * A;
+    gg.drawImage(rcv, 0, 0, gcv.width, gcv.height); gg.restore();
+  }
+  const nameK = T > G.nameT ? Math.exp(-(T - G.nameT) * 1.6) : 0;
+  const gA = clamp((P.pgGlow * (1 - .75 * P.dark) + .5 * nameK) * A * glowK);
+  if (gA > .005) {                                           /* 在蛋里时身上的暖光 */
+    gg.save(); gg.lineJoin = 'round';
+    gg.globalAlpha = gA * .75; gg.strokeStyle = '#FF8A2A'; gg.lineWidth = .06 * H;
+    gg.stroke(far); gg.stroke(core); gg.stroke(nLeg); gg.stroke(nArm);
+    gg.globalCompositeOperation = 'destination-out'; gg.globalAlpha = 1; gg.fillStyle = '#000';
+    gg.fill(far); gg.fill(core); gg.fill(nLeg); gg.fill(nArm);
+    gg.globalCompositeOperation = 'source-over'; gg.globalAlpha = gA * .12; gg.fillStyle = '#FF9A3C';
+    gg.fill(far); gg.fill(core); gg.fill(nLeg); gg.fill(nArm);
+    gg.restore();
+  }
+  if (P.hairFly > .01 && hairA > .01) {                     /* 头发发光, 马上要变成星星 */
+    gg.globalAlpha = sstep(0, .35, P.hairFly) * hairA;
+    for (const c of hair.concat(beard)) ribbonW(gg, curvePts(c, .05 * H, .01 * H, 6), 'rgba(255,240,200,.9)');
+    gg.globalAlpha = 1;
+  }
+}
+
+function drawPanguFx() {
+  const J = G.J; if (!J) return;
+  const H = J.H;
+  if (P.dark > .01 && P.eyes > .05 && P.egg > .05) {        /* 黑暗里只看得见一双眼睛 */
+    drawEyes(J, {alpha:1, eyes:P.eyes, lx:G.pose.lx, ly:G.pose.ly}, true);
+    g.globalCompositeOperation = 'lighter';
+    for (const e of [G.eyeA, G.eyeB]) spr(g, SP.amber, e[0], e[1], .06 * H, .45 * P.dark * P.eyes);
+    g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
+  }
+  const wk = T - G.wakeT;
+  if (wk > 0 && wk < 1.2) {
+    g.globalCompositeOperation = 'lighter';
+    for (const e of [G.eyeA, G.eyeB]) spr(g, SP.star, e[0], e[1], .12 * H * (1 - wk / 1.2), .9 * (1 - wk / 1.2));
+    g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
+  }
+  const ga = T - G.gooT;
+  if (ga > 0 && ga < 3.4) {
+    const h = J.haR, A = clamp(ga / .3) * (1 - sstep(2.4, 3.4, ga));
+    g.lineCap = 'round';
+    for (let i = 0; i < 3; i++) {
+      const ph = ((ga * .8 + i / 3) % 1), r = 14 + ph * 70;
+      g.beginPath();
+      for (let k = 0; k <= 24; k++) { const an = k / 24 * TAU, rr = r * (1 + .12 * Math.sin(an * 5 + ga * 6)); k ? g.lineTo(h[0] + Math.cos(an) * rr, h[1] + Math.sin(an) * rr) : g.moveTo(h[0] + rr, h[1]); }
+      g.strokeStyle = `rgba(230,180,120,${.4 * A * (1 - ph)})`; g.lineWidth = 3; g.stroke();
+    }
+    for (let i = 0; i < 5; i++) {
+      const an = -1.2 + i * .6 + Math.sin(ga * 1.3 + i) * .15, L = 45 + 20 * Math.sin(ga * 2 + i * 1.7);
+      const e = [h[0] + Math.cos(an) * L, h[1] + Math.sin(an) * L], sag = 14 + 10 * Math.sin(ga * 2.4 + i);
+      g.beginPath(); g.moveTo(h[0], h[1]); g.quadraticCurveTo((h[0] + e[0]) / 2, (h[1] + e[1]) / 2 + sag, e[0], e[1]);
+      g.strokeStyle = `rgba(240,196,140,${.45 * A})`; g.lineWidth = 2.2; g.stroke();
+      g.fillStyle = `rgba(240,196,140,${.45 * A})`; g.beginPath(); g.arc(e[0], e[1] + 3, 3.5, 0, TAU); g.fill();
+    }
+  }
+  for (const b of G.bumps) {
+    const age = T - b.t; if (age < 0 || age > .6) continue;
+    const a = 1 - age / .6, c = eggPt(b.th), nx = c[0] - EGG.x, ny = c[1] - EGG.y, d = Math.hypot(nx, ny) || 1;
+    g.strokeStyle = `rgba(255,240,210,${.85 * a})`; g.lineWidth = 3; g.lineCap = 'round';
+    for (let k = -1; k <= 1; k++) {
+      const an = Math.atan2(ny, nx) + k * .28, r0 = d + 18 + age * 30, r1 = r0 + 26;
+      g.beginPath(); g.moveTo(EGG.x + Math.cos(an) * r0, EGG.y + Math.sin(an) * r0); g.lineTo(EGG.x + Math.cos(an) * r1, EGG.y + Math.sin(an) * r1); g.stroke();
+    }
+  }
+  if (G.trail.length > 2) {
+    g.globalCompositeOperation = 'lighter';
+    for (let i = 1; i < G.trail.length; i++) {
+      const a = G.trail[i - 1], b = G.trail[i], d = Math.hypot(b[0] - a[0], b[1] - a[1]); if (d < 6) continue;
+      const k = 1 - (T - b[2]) / .3;
+      g.strokeStyle = `rgba(210,230,255,${.5 * k})`; g.lineWidth = .05 * H * k; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.stroke();
+    }
+    g.globalCompositeOperation = 'source-over';
+  }
+  const sh = T - G.shingT;
+  if (sh > 0 && sh < 1.1 && P.axe > .05) {
+    const tip = axeGeo(J).tip;
+    g.globalCompositeOperation = 'lighter'; spr(g, SP.star, tip[0], tip[1], 90 * Math.sin(sh / 1.1 * PI), .9);
+    g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
+  }
+  if (P.shimmer > .01 && G.bodyCircles.length) {
+    g.globalCompositeOperation = 'lighter';
+    const cs = G.bodyCircles;
+    for (let i = 0; i < 70; i++) {
+      const c = cs[(i * 7) % cs.length], an = hash(i) * TAU + T * (.4 + hash(i + 3) * .6), rr = c[2] * (.6 + hash(i + 7) * .9);
+      spr(g, i % 3 ? SP.gold : SP.star, c[0] + Math.cos(an) * rr, c[1] + Math.sin(an) * rr - (T * 20 + i * 13) % 60, 10 + hash(i + 1) * 12,
+        P.shimmer * (.35 + .35 * Math.sin(T * 3 + i)) * (1 - P.bodyFade));
+    }
+    g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
+  }
+}
+
+/* ================= 纪录片的文字画面 (DOM) ================= */
+const $ = id => document.getElementById(id);
+const body = document.body, startEl = $('start'), endEl = $('end'), cardEl = $('card'), statEl = $('stat'), lowerEl = $('lower');
+const subEl = $('subs'), zhEl = $('zh'), enEl = $('en');
+function showCard(id) {
+  const c = CARDS[id]; if (!c) return;
+  const set = (sel, v) => { const el = cardEl.querySelector(sel); el.textContent = v || ''; el.style.display = v ? '' : 'none'; };
+  cardEl.classList.toggle('title', id === 'title');
+  set('.c-no', c.no); set('.c-t', c.t); set('.c-en', c.en); set('.c-q', c.q); set('.c-qe', c.qe); set('.c-src', c.src);
+  cardEl.querySelector('.c-line').style.display = c.q ? '' : 'none';
+  cardEl.classList.remove('show'); void cardEl.offsetWidth; cardEl.classList.add('show');
+}
+function hideCard() { cardEl.classList.remove('show'); }
+let statAnim = null, lowerTimer = 0;
+function showStat(n, unit, zh, dur) {
+  statEl.querySelector('.u').textContent = unit; statEl.querySelector('.z').textContent = zh;
+  statAnim = {from:statAnim ? statAnim.to : 0, to:n, t0:T, d:dur, shown:-1};
+  statEl.classList.add('show');
+}
+function hideStat() { statEl.classList.remove('show'); statAnim = null; }
+function statTick() {
+  if (!statAnim) return;
+  const t = clamp((T - statAnim.t0) / statAnim.d), v = Math.round(lerp(statAnim.from, statAnim.to, EASE.o(t)));
+  if (v !== statAnim.shown) { statEl.querySelector('.n').textContent = v.toLocaleString('en-US'); statAnim.shown = v; }
+  statEl.querySelector('.bar i').style.width = (t * 100).toFixed(1) + '%';
+}
+function showLower(l1, l2, l3, dur) {
+  lowerEl.querySelector('.l1').textContent = l1; lowerEl.querySelector('.l2').textContent = l2; lowerEl.querySelector('.l3').textContent = l3;
+  lowerEl.classList.add('show'); clearTimeout(lowerTimer);
+  lowerTimer = setTimeout(() => lowerEl.classList.remove('show'), dur * 1000);
+}
+function hideLower() { clearTimeout(lowerTimer); lowerEl.classList.remove('show'); }
+
+/* ================= 时间线 ================= */
+const TW = {};
+function tweenTo(k, to, dur = 2.2, delay = 0, ease = 'io') {
+  if (!(k in P)) return;
+  TW[k] = {a:P[k], b:to, t0:T + delay, d:Math.max(.01, dur), e:EASE[ease] || EASE.io, started:false};
+}
+function tweenTick() {
+  for (const k in TW) {
+    const w = TW[k]; if (T < w.t0) continue;
+    if (!w.started) { w.started = true; w.a = P[k]; }                     /* 延迟开始的: 从开始那一刻的值出发 */
+    const t = (T - w.t0) / w.d;
+    if (t >= 1) { P[k] = w.b; delete TW[k]; } else P[k] = lerp(w.a, w.b, w.e(t));
+  }
+}
+function cueEst(cue) {
+  if (cue.card) return cue.dur;
+  const lang = narrLang();
+  return (cue.pre || 0) + estBase(lang === 'en' ? cue.en : cue.zh, lang) * (NARR.mode === 'off' ? 1 : NARR.cal[lang]);
+}
+function resolveTarget(v) {                                /* '@hx' / '@hy+40' = 盘古头部的位置 */
+  if (typeof v !== 'string') return v;
+  const m = v.match(/^@h([xy])([+-]\d+)?$/);
+  if (!m || !G.head) return 0;
+  return G.head[m[1] === 'x' ? 0 : 1] + (+m[2] || 0);
+}
+function applyK(k, cue) {
+  if (!k) return;
+  for (const name in k) {
+    const s = Array.isArray(k[name]) ? k[name] : [k[name]];
+    let [to, dur = 2.2, delay = 0, ease = 'io'] = s;
+    if (typeof dur === 'string') dur = cueEst(cue) + (parseFloat(dur.slice(1)) || 0);
+    tweenTo(name, resolveTarget(to), dur, delay, ease);
+  }
+}
+const RUN = {i:-1, t0:0, phase:'idle', tPost:0, evDone:[]};
+function startCue(i) {
+  const cue = CUES[i];
+  recPrefetch(i);
+  if (!cue) { finishStory(); return; }
+  RUN.i = i; RUN.t0 = T; RUN.phase = cue.card ? 'card' : 'pre'; RUN.evDone = (cue.ev || []).map(() => false);
+  G.fx = cue.fx || null;
+  if (cue.mood) setSection(cue.mood);
+  if (cue.pal) palTo(cue.pal[0], cue.pal[1], cue.pal[2] || 0);
+  panguUpdate();
+  applyK(cue.k, cue);
+  poseFlush();
+  if (cue.pose) for (const [name, dur, delay, ease] of cue.pose) poseTo(name, dur, delay || 0, ease || 'io');
+  if (cue.on && ON[cue.on]) ON[cue.on]();
+  if (cue.call) { G.call = cue.call; G.callT = T; }
+  if (cue.card) { clearTimeout(subTimer); subEl.classList.add('out'); showCard(cue.card); sfx('sting'); }
+  else { hideCard(); showSub(cue, cue.pre > .5 ? cue.pre - .35 : 0); }
+  progress();
+}
+function evReady(at, cue, lt) {
+  if (typeof at === 'number') return lt >= at;
+  if (RUN.phase === 'pre' || RUN.phase === 'card') return false;   /* 章节卡没有旁白: 只认秒数 */
+  if (RUN.phase === 'post') return true;
+  const lang = NARR.lang, word = at[lang] || at.zh, text = lang === 'en' ? cue.en : cue.zh;
+  let idx = lang === 'en' ? text.toLowerCase().indexOf(word.toLowerCase()) : text.indexOf(word);
+  if (idx < 0) idx = text.length * .5;
+  return spokenFrac() >= idx / text.length;
+}
+function fireEv(ev) { if (ev[2]) applyK(ev[2], CUES[RUN.i]); const f = EV[ev[1]]; if (f) f(); }
+function runTick() {
+  if (RUN.phase === 'idle' || RUN.phase === 'done') return;
+  const cue = CUES[RUN.i], lt = T - RUN.t0;
+  const fire = () => { if (cue.ev) cue.ev.forEach((ev, j) => { if (!RUN.evDone[j] && evReady(ev[0], cue, lt)) { RUN.evDone[j] = true; fireEv(ev); } }); };
+  if (RUN.phase === 'card') {                              /* 章节卡也可以有按秒数触发的事件 */
+    fire();
+    if (lt >= cue.dur - 1.1) hideCard();
+    if (lt >= cue.dur) startCue(RUN.i + 1);
+    return;
+  }
+  if (RUN.phase === 'pre' && lt >= cue.pre) { RUN.phase = 'speak'; say(cue); }
+  if (RUN.phase === 'speak') { narrTick(); if (NARR.done) { RUN.phase = 'post'; RUN.tPost = T; } }
+  fire();
+  if (RUN.phase === 'post' && T - RUN.tPost >= cue.post && lt >= (cue.min || 0)) startCue(RUN.i + 1);
+}
+const EV = {
+  ghost0:() => ghost(0), ghost1:() => ghost(1), ghost2:() => ghost(2), ghost3:() => ghost(3),
+  formEgg:() => sfx('formEgg'),
+  nameGlow:() => { G.nameT = T; sfx('nameGlow'); },
+  count:() => { G.swirlT = T; showStat(18000, 'YEARS · 年', '一万八千年', 2.6); sfx('count'); },
+  statOff:() => hideStat(),
+  wake:() => { G.wakeT = T; sfx('wake'); },
+  goo:() => { G.gooT = T; sfx('goo'); },
+  bumpTop:() => { if (G.J) bump(dirOf(G.J.head), .07); },
+  bumpFeet:() => { if (G.J) bump(dirOf(G.J.toR), .06); },
+  grr:() => sfx('grr'),
+  shing:() => { G.shingT = T; sfx('shing'); },
+  riser:() => sfx('riser'),
+  impact:() => {
+    if (G.J) { const tip = axeGeo(G.J).tip; CRK = makeCrack(clamp(tip[1], EGG.y - EGG.h * .75, EGG.y - EGG.h * .3)); }
+    G.impactT = T; flash(.85); shake(16); sfx('impact');
+  },
+  crackle:() => sfx('crackle'),
+  drum:() => { shake(5); sfx('drum'); },
+  zhang:() => showLower('一丈 · ONE ZHANG', '一丈，大约有一层楼那么高', 'One zhang is about as tall as a one-storey house.', 7),
+  lab0:() => { showStat(1, 'DAY · 天', '一天', .4); sfx('lab', 0); },
+  lab1:() => { showStat(1, 'YEAR · 年', '一年', .4); sfx('lab', 1); },
+  lab2:() => { showStat(100, 'YEARS · 年', '一百年', .9); sfx('lab', 2); },
+  lab3:() => { showStat(1000, 'YEARS · 年', '一千年', 1.2); sfx('lab', 3); },
+  chord:() => sfx('chord'),
+  thud:() => { shake(7); G.dustT = T; sfx('thud'); sfx('dust'); },
+  chimes:() => sfx('chimes'), sunUp:() => sfx('sunUp'), moonUp:() => sfx('moonUp'), twinkle:() => sfx('twinkle'),
+  windS:() => sfx('windS'), water:() => sfx('water'), fieldS:() => sfx('fieldS'), knocks:() => sfx('knocks'),
+  rumble:() => { shake(6, 2.5); sfx('rumble'); },
+  glintM:() => { G.glintM = T; sfx('glintM'); }, glintW:() => { G.glintW = T; sfx('glintW'); }, gust:() => { G.gust = T; sfx('gust'); }
+};
+const ON = { keepSky:() => { delete TW.skyY; P.skyY = G.skyEff; } };
+const dirOf = q => Math.atan2(q[0] - EGG.x, -(q[1] - EGG.y));
+function ghost(i) { G.ghosts[i] = T; sfx('ghost', i); }
+function bump(th, a) { G.bumps.push({th, a, t:T}); if (G.bumps.length > 6) G.bumps.shift(); shake(6); sfx('bump'); }
+function flash(a) { G.flash = REDUCED ? a * .3 : a; G.flashT = T; }
+function shake(a, dur = .8) { if (REDUCED) return; G.shake = a; G.shakeT = T; G.shakeD = dur; }
+
+function stateAt(i) {                                      /* 跳到某一段: 之前的参数直接到位 */
+  Object.assign(P, P0); for (const k in TW) delete TW[k];
+  let pose = 'curl', mood = 'title', pal = 'cosmos';
+  const pend = {};
+  const setK = k => { if (k) for (const n in k) { const v = Array.isArray(k[n]) ? k[n][0] : k[n]; if (typeof v === 'string') pend[n] = v; else { P[n] = v; delete pend[n]; } } };
+  for (let j = 0; j < i; j++) {
+    const c = CUES[j];
+    setK(c.k); (c.ev || []).forEach(ev => setK(ev[2]));
+    if (c.pose) pose = c.pose[c.pose.length - 1][0];
+    if (c.mood) mood = c.mood;
+    if (c.pal) pal = c.pal[0];
+  }
+  setSection(mood); palSet(pal); poseSet(pose); CRK = makeCrack(EGG.y - EGG.h * .62);
+  if (Object.keys(pend).length) { panguUpdate(); for (const n in pend) P[n] = resolveTarget(pend[n]); }
+  Object.assign(G, {ghosts:[], bumps:[], trail:[], gooT:-99, wakeT:-99, nameT:-99, shingT:-99, swirlT:-99, impactT:-99,
+    glintM:-99, glintW:-99, gust:-99, dustT:-99, flash:0, shake:0, call:null});
+  hideStat(); hideLower(); hideCard();
+}
+function jumpTo(i) {
+  i = clamp(i, 0, CUES.length - 1);
+  stopSpeech(); NARR.done = true;
+  if (AU.riser && AU.ac) { try { AU.riser.g.gain.setTargetAtTime(0, AU.ac.currentTime, .05); } catch (e) {} AU.riser = null; }
+  endEl.classList.add('hide'); body.classList.remove('ended');
+  stateAt(i); startCue(i);
+}
+function finishStory() {
+  RUN.phase = 'done'; progress(true); clearTimeout(subTimer);
+  subEl.classList.add('out'); hideCard(); hideStat(); hideLower();
+  body.classList.add('ended'); body.classList.remove('idle');
+  endEl.classList.remove('hide');
+  sfx('finale');
+  if (AU.ac) AU.mMute.gain.setTargetAtTime(AU.musicOn ? .55 : 0, AU.ac.currentTime, 3);
+}
+
+/* ================= 每一帧 ================= */
+Object.assign(G, {lapse:0, nightK:0, cloudPos:[]});
+let lastNow = 0, paused = false, playing = false, started = false;
+function step(dt) {
+  T += dt;
+  const st = T - G.swirlT, boost = st > 0 && st < 2.6 ? 2.5 * Math.sin(PI * st / 2.6) : 0;
+  G.cT += dt * (1 + boost); G.eT += dt * (1 + 3 * boost);
+  if (P.dayCyc > .005) { G.dayPhase += dt * TAU * lerp(.45, 1.7, P.dayCyc); G.lapse += dt * P.dayCyc * 3; }
+  if (playing) runTick();
+  tweenTick(); poseTick();
+  G.jx = G.fx === 'tremble' ? Math.sin(T * 53) * 2.5 : 0; G.jy = G.fx === 'tremble' ? Math.cos(T * 47) * 2 : 0;
+  if (RUN.phase === 'done' && !TW.wheelA) P.wheelA += dt * .05;
+  statTick();
+}
+function fastStep(dt) { step(dt); panguUpdate(); palTick(); }   /* 快进一帧 (不画): 调试和测试工具用 */
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(.05, Math.max(0, (now - lastNow) / 1000)); lastNow = now;
+  if (!paused) step(dt);
+  render();
+}
+function render() {
+  setView(); panguUpdate(); palTick();
+  G.day = P.wheel > .001 ? sstep(P.gY + 40, P.gY - 260, skyBodyPos('sun')[1]) * clamp(P.sun) : .55 * clamp(P.sun) * P.land;
+  const sa = G.shake * Math.exp(-(T - G.shakeT) * 4 / (G.shakeD || .8));
+  shX = sa > .05 ? Math.sin(T * 57) * sa : 0; shY = sa > .05 ? Math.cos(T * 63) * sa : 0;
+  drawBG();
+  gg.setTransform(1, 0, 0, 1, 0, 0); gg.clearRect(0, 0, gcv.width, gcv.height);
+  ax.setTransform(1, 0, 0, 1, 0, 0); ax.clearRect(0, 0, acv.width, acv.height);
+  setWorld(g, DPR); setWorld(gg, DPR * GS); setWorld(ax, DPR * AS);
+  drawSkyFill(); drawStars(); drawSunMoon(); drawFarMtn();
+  drawInk(); drawCeiling(); drawGapLight(); drawSunBeams(); drawClouds(); drawRays(ax);
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.drawImage(acv, 0, 0, cv.width, cv.height); setWorld(g, DPR);
+  drawEarth(); drawFields(); drawRivers(); drawStones();
+  drawEggBack(); drawMotes(); drawGhosts(); drawCrack();
+  drawPangu(); drawDust(); drawNearMtn(); drawNight(); drawEggFront(); drawPanguFx();
+  drawCallout();
+  post();
+}
+
+/* ================= 字幕 ================= */
+let kEl = null, kSpans = [], subTimer = 0;
+function showSub(cue, delay) {
+  clearTimeout(subTimer);
+  subEl.classList.add('out');
+  subTimer = setTimeout(() => {
+    const lang = narrLang(), narr = NARR.mode !== 'off';
+    kEl = null; kSpans = [];
+    fillLine(zhEl, cue.zh, narr && lang === 'zh');
+    fillLine(enEl, cue.en, narr && lang === 'en');
+    if (RUN.phase === 'speak' && NARR.boundOn) karaoke(NARR.bound);
+    subEl.classList.remove('out');
+  }, 300 + delay * 1000);
+}
+function fillLine(el, text, kara) {
+  el.textContent = ''; el.classList.remove('k', 'on');
+  if (!kara) { el.textContent = text; return; }
+  el.classList.add('k'); if (NARR.boundSeen) el.classList.add('on');
+  kSpans = [...text].map(ch => { const s = document.createElement('span'); s.textContent = ch; el.appendChild(s); return s; });
+  kEl = el;
+}
+function karaoke(b) {
+  if (!kEl) return;
+  if (b >= 1e8) { kEl.classList.remove('on'); return; }
+  kEl.classList.add('on');
+  for (let i = 0; i < kSpans.length; i++) kSpans[i].classList.toggle('s', i < b);
+}
+function progress(done) { document.querySelector('#prog i').style.width = (done ? 100 : RUN.i / CUES.length * 100) + '%'; }
+
+/* ================= 设置与控制 ================= */
+function showNote(msg) { const n = document.getElementById('note'); if (n) n.textContent = msg; }
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('pangu2.' + k); return v == null ? d : v; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('pangu2.' + k, v); } catch (e) {} }
+};
+let SUBMODE = store.get('sub', 'both');
+NARR.mode = store.get('narr', 'zh');
+const storedGen = store.get('gen6', ''), storedDepth = store.get('depth6', '');
+NARR.genAuto = storedGen !== 'm' && storedGen !== 'f';           /* 没选过: 跟着浏览器有没有好听的男声走 */
+NARR.gen = NARR.genAuto ? 'm' : storedGen;
+NARR.depthAuto = storedDepth === '';
+NARR.depth = NARR.depthAuto ? DEPTH_DEF[NARR.gen] : clamp(+storedDepth || 0, 0, 100);
+NARR.pick.zh = store.get('vzh6', ''); NARR.pick.en = store.get('ven6', '');
+const hasGoodMale = lang => voiceList(lang).some(v => voiceGender(v) === 'm' && !sapiLow(v) && !CHILD_RE.test(v.name + ' ' + (v.voiceURI || '')));
+function autoGender() {                                     /* 有云健这样的男声就默认男声, 只有 Kangkang 就默认女声 */
+  if (!NARR.genAuto || !NARR.voices.length || NARR.mode === 'off') return;
+  const gd = hasGoodMale(narrLang()) ? 'm' : 'f';
+  if (gd === NARR.gen) return;
+  NARR.gen = gd; if (NARR.depthAuto) setDepth(DEPTH_DEF[gd], false); setSeg('o-gen', gd);
+}
+function femaleNote(lang) { showNote(lang === 'zh' ? '这个浏览器里没有好听的中文男声，所以默认用女声。' : ''); }
+function setSeg(id, v) { document.querySelectorAll('#' + id + ' button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v ? 'true' : 'false')); }
+function applySub() {
+  body.classList.remove('sub-both', 'sub-zh', 'sub-en', 'sub-off'); body.classList.add('sub-' + SUBMODE);
+  setSeg('o-sub', SUBMODE); $('b-sub').textContent = {both:'中英', zh:'中', en:'EN', off:'关'}[SUBMODE];
+}
+function loadVoices() {
+  if (TTS_OK) { try { NARR.voices = speechSynthesis.getVoices() || []; } catch (e) { NARR.voices = []; } }
+  refreshVoiceUI();
+}
+function refreshVoiceUI() {
+  autoGender();
+  const sel = $('o-voice'), lang = narrLang(), list = voiceList(lang).sort((a, b) => scoreVoice(b, lang) - scoreVoice(a, lang)), cur = bestVoice(lang);
+  sel.innerHTML = '';
+  if (NARR.mode === 'off') { sel.add(new Option('（不用配音 · none）', '')); sel.disabled = true; }
+  else if (!list.length) { sel.add(new Option(TTS_OK ? '没有找到声音 · no voice' : '不支持语音合成', '')); sel.disabled = true; }
+  else {
+    sel.disabled = false;
+    for (const v of list) {
+      const id = v.voiceURI || v.name, gd = voiceGender(v);
+      const o = new Option((gd === 'm' ? '♂ ' : gd === 'f' ? '♀ ' : '· ') + v.name.replace(/^Microsoft\s+/, '').replace(/\s+-\s+.*$/, '') + ' · ' + v.lang, id);
+      if (cur && id === (cur.voiceURI || cur.name)) o.selected = true;
+      sel.add(o);
+    }
+  }
+  $('o-test').disabled = sel.disabled;
+  document.querySelectorAll('#o-gen button').forEach(b => b.disabled = NARR.mode === 'off'); $('o-depth').disabled = NARR.mode === 'off' || !!(cur && cur.rec);
+  $('hint-gen').textContent = NARR.mode !== 'off' && cur && cur.rec ? '画面和配乐由浏览器实时生成，旁白是事先录好的' : '画面、配乐和配音都由浏览器实时生成';
+  if (!TTS_OK && !(lang === 'zh' && REC_VOICE)) showNote('这个浏览器不能合成语音，只会播放配乐和字幕。');
+  else if (NARR.voices.length && NARR.mode !== 'off' && !list.length) showNote(lang === 'zh' ? '这台设备上没有中文语音，可以改用 English 配音，或者只看字幕。' : 'No English voice on this device.');
+  else if (NARR.mode !== 'off' && NARR.gen === 'm' && cur && voiceGender(cur) !== 'm')
+    maleNote(lang);
+  else if (NARR.mode !== 'off' && cur && cur.rec) recNote();
+  else if (NARR.mode !== 'off' && cur && sapiLow(cur)) kangNote();
+  else if (NARR.mode !== 'off' && NARR.gen === 'f' && !hasGoodMale(lang)) femaleNote(lang);
+  else showNote('');
+}
+document.querySelectorAll('#o-narr button').forEach(b => b.addEventListener('click', () => {
+  NARR.mode = b.dataset.v; store.set('narr', NARR.mode); setSeg('o-narr', NARR.mode); refreshVoiceUI();
+}));
+document.querySelectorAll('#o-gen button').forEach(b => b.addEventListener('click', () => {
+  NARR.gen = b.dataset.v; NARR.genAuto = false; store.set('gen6', NARR.gen); NARR.pick.zh = NARR.pick.en = ''; store.set('vzh6', ''); store.set('ven6', '');
+  if (NARR.depthAuto) setDepth(DEPTH_DEF[NARR.gen], false); setSeg('o-gen', NARR.gen); refreshVoiceUI();
+}));
+function setDepth(v, save = true) {
+  NARR.depth = clamp(+v || 0, 0, 100);
+  if (save) { store.set('depth6', NARR.depth); NARR.depthAuto = false; }
+  $('o-depth').value = NARR.depth; $('o-depth-v').textContent = Math.round(NARR.depth);
+}
+$('o-depth').addEventListener('input', e => setDepth(e.target.value));
+document.querySelectorAll('#o-sub button').forEach(b => b.addEventListener('click', () => { SUBMODE = b.dataset.v; store.set('sub', SUBMODE); applySub(); }));
+$('o-voice').addEventListener('change', e => { const lang = narrLang(); NARR.pick[lang] = e.target.value; store.set(lang === 'en' ? 'ven6' : 'vzh6', e.target.value); refreshVoiceUI(); });
+$('o-test').addEventListener('click', () => {
+  const lang = narrLang(), v = bestVoice(lang); if (!v) return;
+  stopSpeech();
+  if (v.rec) { recPreview(CUES[1].zh); return; }
+  if (!TTS_OK) return;
+  const u = new SpeechSynthesisUtterance(lang === 'en' ? CUES[1].en : CUES[1].zh);
+  u.voice = v; u.lang = v.lang; u.rate = lang === 'en' ? .86 : .84; u.pitch = voicePitch(v); NARR.keep.push(u);
+  try { speechSynthesis.speak(u); } catch (e) {}
+});
+function start() {
+  if (started) return;
+  started = true;
+  audioInit();
+  if (AU.ac) {
+    if (AU.ac.state === 'suspended') AU.ac.resume();
+    const t = AU.ac.currentTime; AU.mMute.gain.cancelScheduledValues(t); AU.mMute.gain.setValueAtTime(0, t);
+    AU.mMute.gain.setTargetAtTime(AU.musicOn ? 1 : 0, t, .8);
+  }
+  if (TTS_OK && NARR.mode !== 'off') { try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } catch (e) {} }
+  startEl.classList.add('hide'); body.classList.add('playing');
+  playing = true; paused = false;
+  jumpTo(0); uiPing(); wakeLock();
+}
+$('go').addEventListener('click', start);
+$('again').addEventListener('click', () => { setMusic(AU.musicOn); jumpTo(0); if (paused) setPaused(false); uiPing(); });
+const btnPlay = $('b-play');
+function setPaused(v) {
+  if (!playing || RUN.phase === 'done') return;
+  paused = v;
+  body.classList.toggle('is-paused', v);
+  $('i-play').setAttribute('d', v ? 'M7 5l12 7-12 7z' : 'M6 5h4v14H6zM14 5h4v14h-4z');
+  btnPlay.setAttribute('aria-label', v ? '继续' : '暂停');
+  const recOn = NARR.recMode && !NARR.done;                   /* 录音: 暂停时和音乐一起停住, 继续时接着放 */
+  if (v) { if (!recOn) stopSpeech(); if (AU.ac) AU.ac.suspend(); }
+  else { if (AU.ac) AU.ac.resume(); if (RUN.phase === 'speak' && !recOn) say(CUES[RUN.i]); wakeLock(); }
+  uiPing();
+}
+function go(di) {
+  if (!playing) return;
+  const back = di < 0 && T - RUN.t0 > 2.5;
+  if (RUN.phase === 'done') jumpTo(di < 0 ? CUES.length - 1 : 0); else jumpTo(back ? RUN.i : RUN.i + di);
+  if (paused) setPaused(false);
+}
+function toggleMusic() { setMusic(!AU.musicOn); $('b-music').setAttribute('aria-pressed', AU.musicOn ? 'true' : 'false'); }
+function cycleSub() { const m = ['both', 'zh', 'en', 'off']; SUBMODE = m[(m.indexOf(SUBMODE) + 1) % 4]; store.set('sub', SUBMODE); applySub(); }
+const fsEl = document.documentElement, canFS = !!(fsEl.requestFullscreen || fsEl.webkitRequestFullscreen);
+function toggleFull() {
+  try {
+    if (!(document.fullscreenElement || document.webkitFullscreenElement)) (fsEl.requestFullscreen || fsEl.webkitRequestFullscreen).call(fsEl);
+    else (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+  } catch (e) {}
+}
+if (!canFS) $('b-full').style.display = 'none';
+btnPlay.addEventListener('click', () => setPaused(!paused));
+$('b-prev').addEventListener('click', () => go(-1));
+$('b-next').addEventListener('click', () => go(1));
+$('b-music').addEventListener('click', toggleMusic);
+$('b-sub').addEventListener('click', cycleSub);
+$('b-full').addEventListener('click', toggleFull);
+addEventListener('keydown', e => {
+  const tag = e.target && e.target.tagName;
+  if (tag === 'SELECT' || tag === 'INPUT' || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === ' ' && tag === 'BUTTON') return;
+  switch (e.key) {
+    case ' ': case 'k': case 'K': if (playing) { e.preventDefault(); setPaused(!paused); } break;
+    case 'ArrowRight': go(1); break;
+    case 'ArrowLeft': go(-1); break;
+    case 'f': case 'F': toggleFull(); break;
+    case 'm': case 'M': if (started) toggleMusic(); break;
+    case 's': case 'S': cycleSub(); break;
+    case 'Enter': if (!started && tag !== 'BUTTON') start(); break;
+  }
+  uiPing();
+});
+let uiTimer = 0;
+function uiPing() {
+  body.classList.add('ui'); body.classList.remove('idle');
+  clearTimeout(uiTimer);
+  uiTimer = setTimeout(() => { if (playing && !paused && RUN.phase !== 'done') { body.classList.remove('ui'); body.classList.add('idle'); } }, 2600);
+}
+addEventListener('mousemove', uiPing); addEventListener('pointerdown', uiPing);
+document.addEventListener('visibilitychange', () => { if (document.hidden && playing && !paused && RUN.phase !== 'done') setPaused(true); });
+let wl = null;
+async function wakeLock() { try { if ('wakeLock' in navigator && !document.hidden) wl = await navigator.wakeLock.request('screen'); } catch (e) {} }
+addEventListener('resize', resize);
+
+/* ================= 开场 ================= */
+resize(); initParticles(); applySub(); setSeg('o-narr', NARR.mode); setSeg('o-gen', NARR.gen); setDepth(NARR.depth, false); $('b-music').setAttribute('aria-pressed', 'true');
+if (TTS_OK) { try { speechSynthesis.onvoiceschanged = loadVoices; } catch (e) {} }
+loadVoices(); setTimeout(loadVoices, 700); setTimeout(loadVoices, 2200);
+(function debug() {                                        /* 调试用: #at=段号:秒[&freeze][&force=姿势] */
+  const h = location.hash;
+  const m = h.match(/at=(\d+)(?::([\d.]+))?/); if (!m) return;
+  startEl.style.transition = cardEl.style.transition = 'none';
+  NARR.mode = 'off'; started = playing = true;
+  startEl.classList.add('hide'); body.classList.add('playing');
+  jumpTo(+m[1]);
+  for (let k = 0, n = Math.round((+m[2] || 0) * 30); k < n; k++) fastStep(1 / 30);
+  const fp = (h.match(/force=(\w+)/) || [])[1];
+  if (fp) { poseSet(fp); G.fx = null; }
+  if (/freeze/.test(h)) paused = true;
+})();
+requestAnimationFrame(t => { lastNow = t; frame(t); });
+</script>
+</body>
+</html>
