@@ -10,6 +10,7 @@ Skills, prompts and project instructions for working with AI coding agents, main
 ai-toolkit/
 ├── skills-development/   # skills for building software
 ├── skills-creative/      # skills for making creative work
+├── commands/             # slash-command templates, e.g. batch-build a skill over a list
 ├── prompts/              # reusable prompts, e.g. the "create a skill" prompt   (planned)
 ├── instructions/         # CLAUDE.md / AGENTS.md templates for projects         (planned)
 └── references/           # notes, guides, lessons learned                       (planned)
@@ -31,6 +32,12 @@ Each skill is a folder with a `SKILL.md` at its top. A folder may also group sev
 | Skill | What it does |
 |---|---|
 | [story-documentary-animation](skills-creative/story-documentary-animation/) | Turns a short story into one self-contained HTML animation in nature-documentary style, with Canvas scenes, a Web Audio score, Mandarin narration and Chinese + English subtitles. |
+
+## Commands
+
+| Template | What it does |
+|---|---|
+| [batch-next](commands/batch-next.md), [batch-named](commands/batch-named.md) | Run a skill over a numbered list one item at a time: find the next (or the named) unbuilt items, build each, write the lessons back into the skill, stop on the first failure. Fill in the placeholders, then copy into `<your project>/.claude/commands/`. See [commands/README.md](commands/README.md). |
 
 ## Install a skill
 
